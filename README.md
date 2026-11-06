@@ -163,7 +163,7 @@ Ensure you have the following installed on your machine:
 Clone the repository and install dependencies using `pnpm`:
 
 ```bash
-git clone https://github.com/your-repo/expert-learning-platform.git
+git clone https://github.com/hackritik000/expert-learning-platform.git
 cd expert-learning-platform
 pnpm install
 ```
