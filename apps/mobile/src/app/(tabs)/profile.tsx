@@ -1,20 +1,9 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import {
-  User as UserIcon,
-  Mail,
-  Shield,
-  Wallet,
-  LogOut,
-  Sparkles,
-  HelpCircle,
-  FileText,
-} from 'lucide-react-native';
-import { useAuthStore } from '../../stores/authStore';
+import { FileText, HelpCircle, LogOut, Shield, Sparkles } from 'lucide-react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, shadows, spacing } from '../../constants/theme';
-import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { useAuthStore } from '../../stores/authStore';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();

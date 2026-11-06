@@ -3,17 +3,17 @@ import { eq } from 'drizzle-orm';
 import { db, sqlClient } from './db';
 import { runMigrations } from './migrate';
 import {
-  users,
-  educators,
-  subjects,
-  educatorSubjects,
-  educatorAvailability,
-  wallets,
-  walletTransactions,
-  reviews,
-  chats,
-  messages,
   bookings,
+  chats,
+  educatorAvailability,
+  educatorSubjects,
+  educators,
+  messages,
+  reviews,
+  subjects,
+  users,
+  walletTransactions,
+  wallets,
 } from './schema';
 
 export async function seedDatabase() {
@@ -128,6 +128,7 @@ export async function seedDatabase() {
   const educatorDataList = [
     {
       name: 'Dr. Ananya Verma',
+      email: 'ananya@expert.com',
       userId: demoEducatorUser.id,
       title: 'Ph.D. in Computer Science | Ex-Google Senior Staff',
       bio: 'Over 12 years of industry and academic mentorship. Specializing in advanced Data Structures, System Design, and preparing engineers for top tech tier interviews.',
@@ -145,6 +146,7 @@ export async function seedDatabase() {
     },
     {
       name: 'Prof. Rajesh Kulkarni',
+      email: 'rajesh@expert.com',
       title: 'IIT Bombay Gold Medalist | Math Wizard',
       bio: 'Passionate about demystifying advanced Calculus, Probability, and Linear Algebra for competitive exams like JEE Advanced, GATE, and Olympiads.',
       avatarUrl:
@@ -161,6 +163,7 @@ export async function seedDatabase() {
     },
     {
       name: 'Dr. Priya Sundaram',
+      email: 'priya@expert.com',
       title: 'Astrophysics Researcher & IIT-JEE Physics Mentor',
       bio: 'Making physics intuitive through real-world analogies and problem solving. Mentored over 500+ students into top medical and engineering colleges.',
       avatarUrl:
@@ -177,6 +180,7 @@ export async function seedDatabase() {
     },
     {
       name: 'Arjun Mehta',
+      email: 'arjun@expert.com',
       title: 'CFA Charterholder | Financial Markets Consultant',
       bio: 'Learn equity research, personal wealth building, and financial modeling with a seasoned investment banking strategist.',
       avatarUrl:
@@ -193,6 +197,7 @@ export async function seedDatabase() {
     },
     {
       name: 'Sarah Jenkins',
+      email: 'sarah@expert.com',
       title: 'Certified IELTS Trainer & Corporate Communications Coach',
       bio: 'British Council certified trainer helping aspirants achieve 8.0+ Band in IELTS and executive-level corporate communication fluency.',
       avatarUrl:
@@ -209,6 +214,7 @@ export async function seedDatabase() {
     },
     {
       name: 'Vikram Sengupta',
+      email: 'vikram@expert.com',
       title: 'Lead Product Designer at Fintech Unicorn',
       bio: 'Hands-on mentor for UX research, interface architecture, design thinking, and building standout portfolios that land international design roles.',
       avatarUrl:
@@ -225,6 +231,7 @@ export async function seedDatabase() {
     },
     {
       name: 'Dr. Meenakshi Iyer',
+      email: 'meenakshi@expert.com',
       title: 'Senior Chemistry Faculty & NEET Specialist',
       bio: 'Simplified Organic Mechanisms and physical chemistry numericals. 14+ years producing top 100 ranks across national entrance exams.',
       avatarUrl:
@@ -241,6 +248,7 @@ export async function seedDatabase() {
     },
     {
       name: 'Kavita Chawla',
+      email: 'kavita@expert.com',
       title: 'Full Stack Architect & Cloud Specialist',
       bio: 'React Native, Node.js, and AWS Architect. I help students and early career developers build real-world production mobile and web platforms.',
       avatarUrl:
@@ -257,6 +265,7 @@ export async function seedDatabase() {
     },
     {
       name: 'Harish Nambiar',
+      email: 'harish@expert.com',
       title: 'Quantitative Aptitude & Logic Trainer for CAT / GMAT',
       bio: '100%iler in CAT QA. Specializing in mental math tricks, speed techniques, and cracking difficult puzzles in seconds.',
       avatarUrl:
@@ -273,6 +282,7 @@ export async function seedDatabase() {
     },
     {
       name: 'Tanvi Saxena',
+      email: 'tanvi@expert.com',
       title: 'Brand Strategist & Creative Director',
       bio: 'Consulting on brand identity, visual storytelling, and human-centered design for digital startups and modern consumer brands.',
       avatarUrl:
@@ -290,10 +300,23 @@ export async function seedDatabase() {
   ];
 
   for (const item of educatorDataList) {
+    const [educatorUser] = item.userId
+      ? [{ id: item.userId }]
+      : await db
+          .insert(users)
+          .values({
+            name: item.name,
+            email: item.email,
+            password: hashedPassword,
+            role: 'educator',
+            avatarUrl: item.avatarUrl,
+            phoneNumber: null,
+          })
+          .returning();
     const [ed] = await db
       .insert(educators)
       .values({
-        userId: item.userId || null,
+        userId: item.userId || educatorUser.id,
         name: item.name,
         title: item.title,
         bio: item.bio,

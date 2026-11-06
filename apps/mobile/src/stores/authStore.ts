@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { User, AuthResponse } from '@expert/shared';
+import type { AuthResponse, User } from '@expert/shared';
+import { API_ROUTES } from '@expert/shared';
 import type { LoginFormData, RegisterFormData } from '@expert/validation';
 import { apiClient } from '../services/api';
 import { storage } from '../lib/storage';
@@ -34,7 +35,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       // Fetch latest profile with saved token
-      const res = await apiClient.get<{ success: boolean; data: User }>('/api/auth/me');
+      const res = await apiClient.get<{ success: boolean; data: User }>(API_ROUTES.AUTH.ME);
       if (res.data.success && res.data.data) {
         await storage.setUser(res.data.data);
         set({
@@ -59,7 +60,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await apiClient.post<{ success: boolean; data: AuthResponse }>(
-        '/api/auth/login',
+        API_ROUTES.AUTH.LOGIN,
         formData,
       );
       const { user, token } = res.data.data;
@@ -83,7 +84,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const res = await apiClient.post<{ success: boolean; data: AuthResponse }>(
-        '/api/auth/register',
+        API_ROUTES.AUTH.REGISTER,
         formData,
       );
       const { user, token } = res.data.data;
@@ -104,7 +105,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     try {
-      await apiClient.post('/api/auth/logout').catch(() => {});
+      await apiClient.post(API_ROUTES.AUTH.LOGOUT).catch(() => {});
     } finally {
       await storage.removeToken();
       await storage.removeUser();

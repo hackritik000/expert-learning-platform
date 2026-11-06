@@ -1,7 +1,5 @@
 export const RECHARGE_PRESETS = [100, 250, 500, 1000, 2000];
 
-export const DEFAULT_PAGE_SIZE = 10;
-
 export const API_ROUTES = {
   AUTH: {
     LOGIN: '/api/auth/login',
@@ -30,6 +28,7 @@ export const API_ROUTES = {
   },
   CHAT: {
     ROOMS: '/api/chats',
+    BY_EDUCATOR: (educatorId: string) => `/api/chats/educator/${educatorId}`,
     MESSAGES: (id: string) => `/api/chats/${id}/messages`,
   },
 } as const;

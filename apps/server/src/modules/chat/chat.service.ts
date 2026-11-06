@@ -1,6 +1,6 @@
-import { and, eq, desc, asc } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import { db, sqlClient } from '../../database/db';
-import { chats, messages, educators, users } from '../../database/schema';
+import { chats, educators, messages, users } from '../../database/schema';
 
 export class ChatService {
   async getUserChats(userId: string) {
@@ -80,12 +80,19 @@ export class ChatService {
     }
 
     const msgList = await sqlClient`
-      SELECT m.id, m.chat_id, m.sender_id, m.sender_role, m.content, m.created_at, u.name as sender_name
-      FROM messages m
-      JOIN users u ON u.id = m.sender_id
-      WHERE m.chat_id = ${chatId}
-      ORDER BY m.created_at ASC
-    `;
+    SELECT
+      m.id,
+      m.chat_id,
+      m.sender_id,
+      m.sender_role,
+      m.content,
+      m.created_at,
+      u.name AS sender_name
+    FROM messages m
+    JOIN users u ON u.id = m.sender_id
+    WHERE m.chat_id = ${chatId}
+    ORDER BY m.created_at ASC
+  `;
 
     return msgList.map((m: any) => ({
       id: m.id,
@@ -94,7 +101,7 @@ export class ChatService {
       senderName: m.sender_name,
       senderRole: m.sender_role,
       content: m.content,
-      createdAt: m.created_at,
+      createdAt: new Date(m.created_at).toISOString(),
     }));
   }
 

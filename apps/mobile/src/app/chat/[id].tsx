@@ -1,5 +1,5 @@
 import VirtualizedListScrollView from '@/components/ui/VirtualizedListScrollView';
-import type { ChatMessage } from '@expert/shared';
+import { API_ROUTES, type ChatMessage } from '@expert/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
@@ -41,7 +41,7 @@ export default function ChatScreen() {
           educatorAvatar: string;
           isOnline: boolean;
         };
-      }>(`/api/chats/educator/${educatorId}`);
+      }>(API_ROUTES.CHAT.BY_EDUCATOR(educatorId!));
       return res.data.data;
     },
     enabled: Boolean(educatorId),
@@ -78,7 +78,7 @@ export default function ChatScreen() {
     queryFn: async () => {
       if (!chatRoom?.id) return [];
       const res = await apiClient.get<{ success: boolean; data: ChatMessage[] }>(
-        `/api/chats/${chatRoom.id}/messages`,
+        API_ROUTES.CHAT.MESSAGES(chatRoom.id),
       );
       return res.data.data.reverse();
     },
@@ -89,7 +89,7 @@ export default function ChatScreen() {
   // 3. Send Message Mutation
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
-      const res = await apiClient.post(`/api/chats/${chatRoom!.id}/messages`, {
+      const res = await apiClient.post(API_ROUTES.CHAT.MESSAGES(chatRoom!.id), {
         content,
       });
       return res.data.data;
@@ -118,19 +118,22 @@ export default function ChatScreen() {
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>Connecting to consultation room...</Text>
           </View>
-        ) : messages.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center' }}>
-            <EmptyState
-              title="Start Consultation Chat"
-              description={`Say hello to ${chatRoom?.educatorName || 'your mentor'}! Ask questions or share session topics.`}
-              icon={<Sparkles size={32} color={colors.primary} />}
-            />
-          </View>
         ) : (
           <FlatList
             ref={flatListRef}
             data={messages}
             keyExtractor={(item) => item.id}
+            ListHeaderComponent={() =>
+              messages.length === 0 && (
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                  <EmptyState
+                    title="Start Consultation Chat"
+                    description={`Say hello to ${chatRoom?.educatorName || 'your mentor'}! Ask questions or share session topics.`}
+                    icon={<Sparkles size={32} color={colors.primary} />}
+                  />
+                </View>
+              )
+            }
             renderItem={({ item }) => (
               <ChatBubble message={item} isCurrentUser={item.senderRole === 'student'} />
             )}

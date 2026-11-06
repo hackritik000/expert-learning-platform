@@ -1,4 +1,4 @@
-import type { Booking, Educator, Subject, Wallet } from '@expert/shared';
+import { API_ROUTES, type Booking, type Educator, type Subject, type Wallet } from '@expert/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { ArrowRight, Video } from 'lucide-react-native';
@@ -26,7 +26,7 @@ export default function HomeScreen() {
   const { data: walletData, refetch: refetchWallet } = useQuery({
     queryKey: ['wallet'],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Wallet }>('/api/wallet');
+      const res = await apiClient.get<{ success: boolean; data: Wallet }>(API_ROUTES.WALLET.GET);
       return res.data.data;
     },
   });
@@ -38,7 +38,9 @@ export default function HomeScreen() {
   } = useQuery({
     queryKey: ['subjects'],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Subject[] }>('/api/subjects');
+      const res = await apiClient.get<{ success: boolean; data: Subject[] }>(
+        API_ROUTES.SUBJECTS.LIST,
+      );
       return res.data.data;
     },
   });
@@ -51,7 +53,7 @@ export default function HomeScreen() {
     queryKey: ['educators', 'featured'],
     queryFn: async () => {
       const res = await apiClient.get<{ success: boolean; data: { educators: Educator[] } }>(
-        '/api/educators?limit=6&sortBy=rating',
+        `${API_ROUTES.EDUCATORS.LIST}?limit=6&sortBy=rating`,
       );
       return res.data.data.educators;
     },
@@ -65,7 +67,7 @@ export default function HomeScreen() {
     queryKey: ['educators', 'online'],
     queryFn: async () => {
       const res = await apiClient.get<{ success: boolean; data: { educators: Educator[] } }>(
-        '/api/educators?isOnline=true&limit=6',
+        `${API_ROUTES.EDUCATORS.LIST}?isOnline=true&limit=6`,
       );
       return res.data.data.educators;
     },
@@ -74,7 +76,9 @@ export default function HomeScreen() {
   const { data: bookingsData, refetch: refetchBookings } = useQuery({
     queryKey: ['bookings'],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Booking[] }>('/api/bookings');
+      const res = await apiClient.get<{ success: boolean; data: Booking[] }>(
+        API_ROUTES.BOOKINGS.LIST,
+      );
       return res.data.data;
     },
   });
@@ -107,17 +111,15 @@ export default function HomeScreen() {
     router.push('/(tabs)/explore');
   };
 
-  const _handleSearchSubmit = () => {
-    router.push('/(tabs)/explore');
-  };
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Top Header */}
       <View style={styles.topHeader}>
         <View>
           <Text style={styles.greeting}>{getGreeting()},</Text>
-          <Text style={styles.userName}>{user?.name?.split(' ')[0] || 'Scholar'} 👋</Text>
+          <Text style={styles.userName}>
+            {user?.name?.trim().split(' ').slice(0, -1).join(' ') || 'Scholar'} 👋
+          </Text>
         </View>
         <WalletBalanceCard
           compact

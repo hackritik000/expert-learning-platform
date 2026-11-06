@@ -12,7 +12,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { CreditCard, CheckCircle2, X, History, ShieldCheck } from 'lucide-react-native';
-import { type Wallet, type WalletTransaction, RECHARGE_PRESETS } from '@expert/shared';
+import { type Wallet, type WalletTransaction, API_ROUTES, RECHARGE_PRESETS } from '@expert/shared';
 import { apiClient } from '../../services/api';
 import { queryClient } from '../../lib/queryClient';
 import { colors, radius, shadows, spacing } from '../../constants/theme';
@@ -37,7 +37,7 @@ export default function WalletScreen() {
   } = useQuery({
     queryKey: ['wallet'],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Wallet }>('/api/wallet');
+      const res = await apiClient.get<{ success: boolean; data: Wallet }>(API_ROUTES.WALLET.GET);
       return res.data.data;
     },
   });
@@ -51,7 +51,7 @@ export default function WalletScreen() {
     queryKey: ['walletTransactions'],
     queryFn: async () => {
       const res = await apiClient.get<{ success: boolean; data: WalletTransaction[] }>(
-        '/api/wallet/transactions',
+        API_ROUTES.WALLET.TRANSACTIONS,
       );
       return res.data.data;
     },
@@ -60,7 +60,7 @@ export default function WalletScreen() {
   // Recharge Mutation
   const rechargeMutation = useMutation({
     mutationFn: async (amount: number) => {
-      const res = await apiClient.post('/api/wallet/recharge', {
+      const res = await apiClient.post(API_ROUTES.WALLET.RECHARGE, {
         amount,
         paymentMethod: 'UPI / Card',
       });

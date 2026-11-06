@@ -12,7 +12,7 @@ import {
   AlertTriangle,
   ArrowRight,
 } from 'lucide-react-native';
-import type { Wallet } from '@expert/shared';
+import { API_ROUTES, type Wallet } from '@expert/shared';
 import { apiClient } from '../../services/api';
 import { queryClient } from '../../lib/queryClient';
 import { colors, radius, shadows, spacing } from '../../constants/theme';
@@ -43,7 +43,7 @@ export default function BookingConfirmationScreen() {
   const { data: wallet } = useQuery({
     queryKey: ['wallet'],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Wallet }>('/api/wallet');
+      const res = await apiClient.get<{ success: boolean; data: Wallet }>(API_ROUTES.WALLET.GET);
       return res.data.data;
     },
   });
@@ -54,7 +54,7 @@ export default function BookingConfirmationScreen() {
   // Booking Mutation
   const bookingMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiClient.post('/api/bookings', {
+      const res = await apiClient.post(API_ROUTES.BOOKINGS.CREATE, {
         educatorId: params.educatorId,
         slotId: params.id,
         notes: notes.trim() || undefined,

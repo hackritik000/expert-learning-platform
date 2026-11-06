@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
+import { API_ROUTES, type Booking } from '@expert/shared';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { Calendar } from 'lucide-react-native';
+import { useState } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  RefreshControl,
   Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Calendar } from 'lucide-react-native';
-import type { Booking } from '@expert/shared';
-import { apiClient } from '../../services/api';
-import { queryClient } from '../../lib/queryClient';
-import { colors, radius, spacing } from '../../constants/theme';
 import { BookingCard } from '../../components/ui/BookingCard';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { LoadingSkeleton } from '../../components/ui/LoadingSkeleton';
+import { colors, radius, spacing } from '../../constants/theme';
+import { queryClient } from '../../lib/queryClient';
+import { apiClient } from '../../services/api';
 
 type FilterTab = 'all' | 'confirmed' | 'completed' | 'cancelled';
 
@@ -34,14 +34,16 @@ export default function BookingsScreen() {
   } = useQuery({
     queryKey: ['bookings'],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Booking[] }>('/api/bookings');
+      const res = await apiClient.get<{ success: boolean; data: Booking[] }>(
+        API_ROUTES.BOOKINGS.LIST,
+      );
       return res.data.data;
     },
   });
 
   const cancelMutation = useMutation({
     mutationFn: async (bookingId: string) => {
-      const res = await apiClient.patch(`/api/bookings/${bookingId}/cancel`, {
+      const res = await apiClient.patch(API_ROUTES.BOOKINGS.CANCEL(bookingId), {
         reason: 'Student cancelled consultation',
       });
       return res.data;

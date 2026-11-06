@@ -1,4 +1,4 @@
-import type { Educator, TimeSlot } from '@expert/shared';
+import { API_ROUTES, type Educator, type TimeSlot } from '@expert/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -35,7 +35,7 @@ export default function EducatorDetailScreen() {
   } = useQuery({
     queryKey: ['educator', id],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Educator }>(`/api/educators/${id}`);
+      const res = await apiClient.get<{ success: boolean; data: Educator }>(API_ROUTES.EDUCATORS.DETAIL(id!));
       return res.data.data;
     },
     enabled: Boolean(id),

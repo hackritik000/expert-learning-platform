@@ -1,0 +1,5 @@
+[tools]
+android-sdk = "latest"
+bun = "latest"
+java = "17"
+pnpm = "11.8.0"

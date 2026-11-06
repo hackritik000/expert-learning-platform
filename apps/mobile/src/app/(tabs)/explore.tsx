@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { X, Sparkles } from 'lucide-react-native';
-import type { Educator, Subject } from '@expert/shared';
+import { API_ROUTES, type Educator, type Subject } from '@expert/shared';
 import { apiClient } from '../../services/api';
 import { useFilterStore } from '../../stores/filterStore';
 import { colors, radius, spacing } from '../../constants/theme';
@@ -50,7 +50,7 @@ export default function ExploreScreen() {
   const { data: subjects = [] } = useQuery({
     queryKey: ['subjects'],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Subject[] }>('/api/subjects');
+      const res = await apiClient.get<{ success: boolean; data: Subject[] }>(API_ROUTES.SUBJECTS.LIST);
       return res.data.data;
     },
   });
@@ -77,10 +77,12 @@ export default function ExploreScreen() {
       if (isOnline !== undefined) params.append('isOnline', String(isOnline));
       if (sortBy) params.append('sortBy', sortBy);
 
+      const queryString = params.toString();
+      const endpoint = queryString ? `${API_ROUTES.EDUCATORS.LIST}?${queryString}` : API_ROUTES.EDUCATORS.LIST;
       const res = await apiClient.get<{
         success: boolean;
         data: { educators: Educator[]; total: number };
-      }>(`/api/educators?${params.toString()}`);
+      }>(endpoint);
       return res.data.data;
     },
   });
