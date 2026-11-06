@@ -1,0 +1,26 @@
+{
+  "name": "expert-learning-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Expert Learning & Consultation Platform - Monorepo",
+  "packageManager": "pnpm@11.8.0",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:server": "turbo run dev --filter=@expert/server",
+    "dev:mobile": "turbo run dev --filter=@expert/mobile",
+    "build": "turbo run build",
+    "check": "turbo run check",
+    "test": "turbo run test",
+    "db:up": "docker-compose up -d postgres",
+    "db:down": "docker-compose down",
+    "db:seed": "pnpm --filter @expert/server db:seed",
+    "db:push": "pnpm --filter @expert/server db:push",
+    "format": "biome format --write .",
+    "lint": "biome lint ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "turbo": "^2.4.4",
+    "typescript": "^5.8.2"
+  }
+}

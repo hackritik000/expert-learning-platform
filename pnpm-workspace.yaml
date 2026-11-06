@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+onlyBuiltDependencies:
+  - "@biomejs/biome"
+  - "esbuild"
+  - "@scarf/scarf"
+
+allowBuilds:
+  '@biomejs/biome': true
+  '@scarf/scarf': true
+  esbuild: true
