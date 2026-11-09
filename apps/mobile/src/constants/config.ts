@@ -25,8 +25,8 @@ function getApiUrl(): string {
 
 function getImageHandlerUrl(): string {
   // If explicitly provided via env
-  if (process.env.EXPO_PUBLIC_Image_Handler_URL) {
-    return process.env.EXPO_PUBLIC_Image_Handler_URL;
+  if (process.env.EXPO_PUBLIC_IMAGE_HANDLER_URL) {
+    return process.env.EXPO_PUBLIC_IMAGE_HANDLER_URL;
   }
 
   // If running in Expo Go on a physical phone or simulator

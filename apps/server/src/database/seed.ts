@@ -342,7 +342,7 @@ export async function seedDatabase() {
     }
 
     // Add 4 Time Slots for each educator (upcoming days)
-    const dates = ['2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09'];
+    const dates = ['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'];
     const times = [
       { start: '10:00 AM', end: '11:00 AM' },
       { start: '02:00 PM', end: '03:00 PM' },
