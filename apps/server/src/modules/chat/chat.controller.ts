@@ -1,49 +1,58 @@
-import type { Request, Response, NextFunction } from 'express';
+import { asyncHandler } from '../../middleware/asyncHandler';
 import { chatService } from './chat.service';
 
 export class ChatController {
-  async getUserChats(req: Request, res: Response, next: NextFunction) {
-    try {
-      const result = await chatService.getUserChats(req.user!.userId);
-      res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
-      next(error);
-    }
-  }
+  getUserChats = asyncHandler(async (req, res) => {
+    const result = await chatService.getUserChats(req.user!.userId, req.user!.role);
 
-  async getOrCreateChatByEducator(req: Request, res: Response, next: NextFunction) {
-    try {
-      const result = await chatService.getOrCreateChatByEducator(
-        req.user!.userId,
-        req.params.educatorId as string,
-      );
-      res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
-      next(error);
-    }
-  }
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  });
 
-  async getChatMessages(req: Request, res: Response, _next: NextFunction) {
-    try {
-      const result = await chatService.getChatMessages(req.user!.userId, req.params.id as string);
-      res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
-      res.status(404).json({ success: false, error: error.message });
-    }
-  }
+  getOrCreateChatByEducator = asyncHandler(async (req, res) => {
+    const result = await chatService.getOrCreateChatByEducator(
+      req.user!.userId,
+      req.params.educatorId as string,
+    );
 
-  async sendMessage(req: Request, res: Response, _next: NextFunction) {
-    try {
-      const result = await chatService.sendMessage(
-        req.user!.userId,
-        req.params.id as string,
-        req.body.content,
-      );
-      res.status(201).json({ success: true, data: result });
-    } catch (error: any) {
-      res.status(400).json({ success: false, error: error.message });
-    }
-  }
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  });
+
+  getChatById = asyncHandler(async (req, res) => {
+    const result = await chatService.getChatById(req.user!.userId, req.params.id as string);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  });
+
+  getChatMessages = asyncHandler(async (req, res) => {
+    const result = await chatService.getChatMessages(req.user!.userId, req.params.id as string);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  });
+
+  sendMessage = asyncHandler(async (req, res) => {
+    const result = await chatService.sendMessage(
+      req.user!.userId,
+      req.params.id as string,
+      req.body.content,
+    );
+
+    res.status(201).json({
+      success: true,
+      data: result,
+    });
+  });
 }
 
 export const chatController = new ChatController();

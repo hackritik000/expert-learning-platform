@@ -1,4 +1,4 @@
-export type TransactionType = 'recharge' | 'consultation_payment' | 'refund';
+export type TransactionType = 'recharge' | 'consultation_payment' | 'refund' | 'withdrawal';
 export type TransactionStatus = 'pending' | 'success' | 'failed';
 
 export interface Wallet {
@@ -24,4 +24,9 @@ export interface WalletTransaction {
 export interface RechargeRequest {
   amount: number;
   paymentMethod?: string;
+}
+
+export interface WithdrawRequest {
+  amount: number;
+  accountDetails?: string;
 }

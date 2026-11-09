@@ -1,8 +1,8 @@
-import { type LoginFormData, loginSchema } from '@expert/validation';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { type LoginFormData, loginSchema } from '@repo/validation';
 import { useRouter } from 'expo-router';
 import { GraduationCap, Lock, Mail, Sparkles } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -27,19 +27,36 @@ export default function LoginScreen() {
       email: '',
       password: '',
     },
+    resetOptions: {
+      keepValues: true,
+    },
   });
+
+  useEffect(() => {
+    console.log('LOGIN SCREEN MOUNTED');
+
+    return () => {
+      console.log('LOGIN SCREEN UNMOUNTED');
+    };
+  }, []);
 
   const onSubmit = async (data: LoginFormData) => {
     try {
       setFormError(null);
       await login(data);
-    } catch (err: any) {
-      setFormError(err.message || 'Login failed. Please verify your credentials.');
+    } catch (err: unknown) {
+      setFormError(
+        err instanceof Error ? err.message : 'Login failed. Please verify your credentials.',
+      );
     }
   };
 
-  const fillDemoAccount = () => {
-    setValue('email', 'student@demo.com');
+  const fillDemoAccount = (isEducator: boolean) => {
+    if (isEducator) {
+      setValue('email', 'ananya@expert.com');
+    } else {
+      setValue('email', 'student@demo.com');
+    }
     setValue('password', 'password123');
     setFormError(null);
   };
@@ -61,13 +78,33 @@ export default function LoginScreen() {
       </View>
 
       {/* Demo Credentials Quick-Fill Banner */}
-      <TouchableOpacity activeOpacity={0.8} onPress={fillDemoAccount} style={styles.demoBanner}>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => fillDemoAccount(false)}
+        style={styles.demoBanner}
+      >
         <View style={styles.demoHeader}>
           <Sparkles size={16} color={colors.accent} />
-          <Text style={styles.demoTitle}>One-Click Demo Login</Text>
+          <Text style={styles.demoTitle}>One-Click to Student Demo Login</Text>
         </View>
         <Text style={styles.demoSubtitle}>
           Tap here to auto-fill <Text style={styles.boldText}>student@demo.com</Text> /{' '}
+          <Text style={styles.boldText}>password123</Text>
+        </Text>
+      </TouchableOpacity>
+
+      {/* Demo Credentials Quick-Fill Banner */}
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => fillDemoAccount(true)}
+        style={styles.demoBanner}
+      >
+        <View style={styles.demoHeader}>
+          <Sparkles size={16} color={colors.accent} />
+          <Text style={styles.demoTitle}>One-Click to Educator Demo Login</Text>
+        </View>
+        <Text style={styles.demoSubtitle}>
+          Tap here to auto-fill <Text style={styles.boldText}>ananya@expert.com</Text> /{' '}
           <Text style={styles.boldText}>password123</Text>
         </Text>
       </TouchableOpacity>

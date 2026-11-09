@@ -1,8 +1,8 @@
+import { sendMessageSchema } from '@repo/validation';
 import { Router } from 'express';
-import { chatController } from './chat.controller';
 import { requireAuth } from '../../middleware/auth';
 import { validateBody } from '../../middleware/validate';
-import { sendMessageSchema } from '@expert/validation';
+import { chatController } from './chat.controller';
 
 export const chatRouter = Router();
 
@@ -40,7 +40,7 @@ chatRouter.use(requireAuth);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-chatRouter.get('/', (req, res, next) => chatController.getUserChats(req, res, next));
+chatRouter.get('/', chatController.getUserChats);
 
 /**
  * @openapi
@@ -80,9 +80,45 @@ chatRouter.get('/', (req, res, next) => chatController.getUserChats(req, res, ne
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-chatRouter.get('/educator/:educatorId', (req, res, next) =>
-  chatController.getOrCreateChatByEducator(req, res, next),
-);
+chatRouter.get('/educator/:educatorId', chatController.getOrCreateChatByEducator);
+
+/**
+ * @openapi
+ * /api/chats/{id}:
+ *   get:
+ *     tags:
+ *       - Chat
+ *     summary: Get chat room details
+ *     description: Retrieve chat room details by chat room UUID or educator UUID for consultation messaging.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Chat room UUID or Educator UUID
+ *     responses:
+ *       200:
+ *         description: Chat room details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/ChatRoom'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Chat room not found
+ */
+chatRouter.get('/:id', chatController.getChatById);
 
 /**
  * @openapi
@@ -176,8 +212,6 @@ chatRouter.get('/educator/:educatorId', (req, res, next) =>
  *       401:
  *         description: Unauthorized
  */
-chatRouter.get('/:id/messages', (req, res, next) => chatController.getChatMessages(req, res, next));
+chatRouter.get('/:id/messages', chatController.getChatMessages);
 
-chatRouter.post('/:id/messages', validateBody(sendMessageSchema), (req, res, next) =>
-  chatController.sendMessage(req, res, next),
-);
+chatRouter.post('/:id/messages', validateBody(sendMessageSchema), chatController.sendMessage);

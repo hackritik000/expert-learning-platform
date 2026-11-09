@@ -1,8 +1,8 @@
+import { rechargeSchema, withdrawSchema } from '@repo/validation';
 import { Router } from 'express';
-import { walletController } from './wallet.controller';
 import { requireAuth } from '../../middleware/auth';
 import { validateBody } from '../../middleware/validate';
-import { rechargeSchema } from '@expert/validation';
+import { walletController } from './wallet.controller';
 
 export const walletRouter = Router();
 
@@ -38,7 +38,7 @@ walletRouter.use(requireAuth);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-walletRouter.get('/', (req, res, next) => walletController.getWallet(req, res, next));
+walletRouter.get('/', walletController.getWallet);
 
 /**
  * @openapi
@@ -96,9 +96,46 @@ walletRouter.get('/', (req, res, next) => walletController.getWallet(req, res, n
  *       401:
  *         description: Unauthorized
  */
-walletRouter.post('/recharge', validateBody(rechargeSchema), (req, res, next) =>
-  walletController.recharge(req, res, next),
-);
+walletRouter.post('/recharge', validateBody(rechargeSchema), walletController.recharge);
+
+/**
+ * @openapi
+ * /api/wallet/withdraw:
+ *   post:
+ *     tags:
+ *       - Wallet
+ *     summary: Withdraw funds from wallet
+ *     description: Educator or user withdraws funds from their consultation wallet to their UPI or bank account.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 minimum: 100
+ *                 maximum: 100000
+ *                 example: 500
+ *                 description: Withdrawal amount in INR (min ₹100, max ₹100,000)
+ *               accountDetails:
+ *                 type: string
+ *                 example: educator@upi
+ *                 description: Target UPI ID or Bank account details
+ *     responses:
+ *       200:
+ *         description: Withdrawal processed successfully
+ *       400:
+ *         description: Insufficient funds or invalid amount
+ *       401:
+ *         description: Unauthorized
+ */
+walletRouter.post('/withdraw', validateBody(withdrawSchema), walletController.withdraw);
 
 /**
  * @openapi
@@ -132,6 +169,4 @@ walletRouter.post('/recharge', validateBody(rechargeSchema), (req, res, next) =>
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-walletRouter.get('/transactions', (req, res, next) =>
-  walletController.getTransactions(req, res, next),
-);
+walletRouter.get('/transactions', walletController.getTransactions);

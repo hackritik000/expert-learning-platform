@@ -25,11 +25,23 @@ const options: swaggerJsdoc.Options = {
     ],
     tags: [
       { name: 'Health', description: 'System health check and operational status' },
-      { name: 'Auth', description: 'User registration, login, JWT authentication, and session management' },
+      {
+        name: 'Auth',
+        description: 'User registration, login, JWT authentication, and session management',
+      },
       { name: 'Subjects', description: 'Academic subjects and consultation categories' },
-      { name: 'Educators', description: 'Educator directory, search, filtering, and availability slots' },
-      { name: 'Bookings', description: 'Consultation scheduling, booking details, and cancellations' },
-      { name: 'Wallet', description: 'User balance management, simulated recharge, and transaction history' },
+      {
+        name: 'Educators',
+        description: 'Educator directory, search, filtering, and availability slots',
+      },
+      {
+        name: 'Bookings',
+        description: 'Consultation scheduling, booking details, and cancellations',
+      },
+      {
+        name: 'Wallet',
+        description: 'User balance management, simulated recharge, and transaction history',
+      },
       { name: 'Chat', description: '1-on-1 consultation chat rooms and messaging' },
     ],
     components: {
@@ -82,7 +94,11 @@ const options: swaggerJsdoc.Options = {
           type: 'object',
           properties: {
             id: { type: 'string', format: 'uuid', example: '123e4567-e89b-12d3-a456-426614174002' },
-            educatorId: { type: 'string', format: 'uuid', example: '123e4567-e89b-12d3-a456-426614174003' },
+            educatorId: {
+              type: 'string',
+              format: 'uuid',
+              example: '123e4567-e89b-12d3-a456-426614174003',
+            },
             date: { type: 'string', example: '2026-11-06' },
             startTime: { type: 'string', example: '14:00' },
             endTime: { type: 'string', example: '15:00' },
@@ -96,7 +112,10 @@ const options: swaggerJsdoc.Options = {
             studentName: { type: 'string', example: 'Aarav Sharma' },
             studentAvatar: { type: 'string', nullable: true },
             rating: { type: 'number', example: 5 },
-            comment: { type: 'string', example: 'Exceptional teaching style! Solved all doubts with clear intuition.' },
+            comment: {
+              type: 'string',
+              example: 'Exceptional teaching style! Solved all doubts with clear intuition.',
+            },
             createdAt: { type: 'string', format: 'date-time' },
           },
         },
@@ -107,8 +126,15 @@ const options: swaggerJsdoc.Options = {
             userId: { type: 'string', format: 'uuid' },
             name: { type: 'string', example: 'Dr. Ananya Sharma' },
             title: { type: 'string', example: 'Senior AI & ML Researcher, IIT Bombay' },
-            bio: { type: 'string', example: 'Specialist in Deep Learning, PyTorch, and NLP with 8+ years teaching experience.' },
-            avatarUrl: { type: 'string', example: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2' },
+            bio: {
+              type: 'string',
+              example:
+                'Specialist in Deep Learning, PyTorch, and NLP with 8+ years teaching experience.',
+            },
+            avatarUrl: {
+              type: 'string',
+              example: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2',
+            },
             rating: { type: 'number', example: 4.95 },
             reviewCount: { type: 'integer', example: 128 },
             experienceYears: { type: 'integer', example: 8 },
@@ -147,9 +173,16 @@ const options: swaggerJsdoc.Options = {
               enum: ['pending', 'confirmed', 'completed', 'cancelled'],
               example: 'confirmed',
             },
-            notes: { type: 'string', nullable: true, example: 'Need assistance with dynamic programming' },
+            notes: {
+              type: 'string',
+              nullable: true,
+              example: 'Need assistance with dynamic programming',
+            },
             educatorName: { type: 'string', example: 'Dr. Ananya Sharma' },
-            educatorAvatar: { type: 'string', example: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2' },
+            educatorAvatar: {
+              type: 'string',
+              example: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2',
+            },
             educatorTitle: { type: 'string', example: 'Senior AI & ML Researcher' },
             studentName: { type: 'string', example: 'Demo Student' },
             createdAt: { type: 'string', format: 'date-time' },
@@ -194,11 +227,18 @@ const options: swaggerJsdoc.Options = {
             id: { type: 'string', format: 'uuid', example: '123e4567-e89b-12d3-a456-426614174007' },
             educatorId: { type: 'string', format: 'uuid' },
             educatorName: { type: 'string', example: 'Dr. Ananya Sharma' },
-            educatorAvatar: { type: 'string', example: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2' },
+            educatorAvatar: {
+              type: 'string',
+              example: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2',
+            },
             isOnline: { type: 'boolean', example: true },
             userId: { type: 'string', format: 'uuid' },
             userName: { type: 'string', example: 'Demo Student' },
-            lastMessage: { type: 'string', nullable: true, example: 'See you in the consultation session!' },
+            lastMessage: {
+              type: 'string',
+              nullable: true,
+              example: 'See you in the consultation session!',
+            },
             lastMessageAt: { type: 'string', nullable: true, format: 'date-time' },
             unreadCount: { type: 'integer', example: 0 },
           },
@@ -211,7 +251,10 @@ const options: swaggerJsdoc.Options = {
             senderId: { type: 'string', format: 'uuid' },
             senderName: { type: 'string', example: 'Demo Student' },
             senderRole: { type: 'string', enum: ['student', 'educator'], example: 'student' },
-            content: { type: 'string', example: 'Hello, I have a question regarding graph theory.' },
+            content: {
+              type: 'string',
+              example: 'Hello, I have a question regarding graph theory.',
+            },
             createdAt: { type: 'string', format: 'date-time' },
           },
         },

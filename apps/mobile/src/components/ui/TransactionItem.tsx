@@ -1,7 +1,7 @@
-import type React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import type { WalletTransaction } from '@repo/shared';
 import { ArrowDownLeft, ArrowUpRight, RotateCcw } from 'lucide-react-native';
-import type { WalletTransaction } from '@expert/shared';
+import type React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from '../../constants/theme';
 
 interface TransactionItemProps {
@@ -11,12 +11,20 @@ interface TransactionItemProps {
 export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
   const isCredit = transaction.amount > 0;
   const isRefund = transaction.type === 'refund';
+  const isWithdrawal = transaction.type === 'withdrawal';
 
   const renderIcon = () => {
     if (isRefund) {
       return (
         <View style={[styles.iconBox, { backgroundColor: colors.warningLight }]}>
           <RotateCcw size={18} color={colors.warning} />
+        </View>
+      );
+    }
+    if (isWithdrawal) {
+      return (
+        <View style={[styles.iconBox, { backgroundColor: '#FEE2E2' }]}>
+          <ArrowUpRight size={18} color={colors.error} />
         </View>
       );
     }

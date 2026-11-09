@@ -1,11 +1,24 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import { cleanEnv, num, str } from 'envalid';
 
-export const ENV = {
-  PORT: process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 4000,
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  DATABASE_URL:
-    process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/expert_learning',
-  JWT_SECRET: process.env.JWT_SECRET || 'expert_learning_super_secret_jwt_key_2026',
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
-};
+export const ENV = cleanEnv(process.env, {
+  PORT: num({
+    default: 4000,
+  }),
+  JWT_SECRET: str({
+    default: 'expert_learning_super_secret_jwt_key_2026',
+  }),
+  JWT_EXPIRES_IN: str({
+    default: '7d',
+  }),
+  NODE_ENV: str({
+    choices: ['development', 'test', 'production'],
+    default: 'development',
+  }),
+  PGHOST: str(),
+  PGPORT: num({
+    default: 5432,
+  }),
+  PGUSER: str(),
+  PGPASSWORD: str(),
+  PGDATABASE: str(),
+});

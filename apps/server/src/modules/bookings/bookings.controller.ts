@@ -1,49 +1,64 @@
-import type { Request, Response, NextFunction } from 'express';
+import { asyncHandler } from '../../middleware/asyncHandler';
 import { bookingsService } from './bookings.service';
 
 export class BookingsController {
-  async createBooking(req: Request, res: Response, _next: NextFunction) {
-    try {
-      const result = await bookingsService.createBooking(req.user!.userId, req.body);
-      res.status(201).json({ success: true, data: result });
-    } catch (error: any) {
-      res.status(400).json({ success: false, error: error.message });
-    }
-  }
+  createBooking = asyncHandler(async (req, res) => {
+    const result = await bookingsService.createBooking(req.user!.userId, req.body);
 
-  async getUserBookings(req: Request, res: Response, next: NextFunction) {
-    try {
-      const result = await bookingsService.getUserBookings(req.user!.userId);
-      res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
-      next(error);
-    }
-  }
+    res.status(201).json({
+      success: true,
+      data: result,
+    });
+  });
 
-  async getBookingById(req: Request, res: Response, _next: NextFunction) {
-    try {
-      const result = await bookingsService.getBookingById(
-        req.user!.userId,
-        req.params.id as string,
-      );
-      res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
-      res.status(404).json({ success: false, error: error.message });
-    }
-  }
+  getUserBookings = asyncHandler(async (req, res) => {
+    const result = await bookingsService.getUserBookings(req.user!.userId);
 
-  async cancelBooking(req: Request, res: Response, _next: NextFunction) {
-    try {
-      const result = await bookingsService.cancelBooking(
-        req.user!.userId,
-        req.params.id as string,
-        req.body?.reason,
-      );
-      res.status(200).json({ success: true, data: result });
-    } catch (error: any) {
-      res.status(400).json({ success: false, error: error.message });
-    }
-  }
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  });
+
+  getBookingById = asyncHandler(async (req, res) => {
+    const result = await bookingsService.getBookingById(req.user!.userId, req.params.id as string);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  });
+
+  cancelBooking = asyncHandler(async (req, res) => {
+    const result = await bookingsService.cancelBooking(
+      req.user!.userId,
+      req.params.id as string,
+      req.body?.reason,
+    );
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  });
+
+  completeBooking = asyncHandler(async (req, res) => {
+    const result = await bookingsService.completeBooking(req.user!.userId, req.params.id as string);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  });
+
+  getEducatorEarnings = asyncHandler(async (req, res) => {
+    const result = await bookingsService.getEducatorEarnings(req.user!.userId);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  });
 }
 
 export const bookingsController = new BookingsController();

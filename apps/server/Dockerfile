@@ -18,7 +18,7 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/validation/package.json ./packages/validation/
 
 # Install dependencies including workspace packages (excluding mobile)
-RUN pnpm install --frozen-lockfile --filter @expert/server...
+RUN pnpm install --frozen-lockfile --filter @repo/server...
 
 # -------------------------------------------------------------
 # Stage 2: Production runner

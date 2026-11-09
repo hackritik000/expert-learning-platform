@@ -1,5 +1,5 @@
 {
-  "name": "@expert/validation",
+  "name": "@repo/validation",
   "version": "1.0.0",
   "private": true,
   "main": "./src/index.ts",
@@ -14,7 +14,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@expert/config": "workspace:*",
+    "@repo/config": "workspace:*",
     "typescript": "^5.8.2"
   }
 }

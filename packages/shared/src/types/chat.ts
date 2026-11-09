@@ -1,3 +1,19 @@
+export interface SessionBookingInfo {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface SessionTimeAccess {
+  canChat: boolean;
+  status: 'active' | 'upcoming' | 'expired' | 'no_booking';
+  message: string;
+  activeBooking?: SessionBookingInfo;
+  nextBooking?: SessionBookingInfo;
+  lastBooking?: SessionBookingInfo;
+}
+
 export interface ChatRoom {
   id: string;
   educatorId: string;
@@ -6,9 +22,11 @@ export interface ChatRoom {
   isOnline: boolean;
   userId: string;
   userName: string;
+  userAvatar?: string | null;
   lastMessage?: string | null;
   lastMessageAt?: string | null;
   unreadCount: number;
+  sessionStatus?: SessionTimeAccess;
 }
 
 export interface ChatMessage {

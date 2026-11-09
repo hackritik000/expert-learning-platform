@@ -8,6 +8,7 @@ onlyBuiltDependencies:
   - "@scarf/scarf"
 
 allowBuilds:
-  '@biomejs/biome': true
-  '@scarf/scarf': true
+  "@biomejs/biome": true
+  "@scarf/scarf": true
   esbuild: true
+  sharp: set this to true or false

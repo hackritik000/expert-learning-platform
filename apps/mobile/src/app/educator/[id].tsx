@@ -1,4 +1,4 @@
-import { API_ROUTES, type Educator, type TimeSlot } from '@expert/shared';
+import { API_ROUTES, type Educator, type TimeSlot } from '@repo/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,21 +10,31 @@ import {
   GraduationCap,
   Languages,
   MessageSquare,
-  ShieldCheck,
+  Pencil,
   Star,
 } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import {
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { AvailabilityBadge } from '../../components/ui/AvailabilityBadge';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { LoadingSkeleton } from '../../components/ui/LoadingSkeleton';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { colors, radius, shadows, spacing } from '../../constants/theme';
 import { apiClient } from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
 
 export default function EducatorDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuthStore();
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
 
   const {
@@ -35,15 +45,22 @@ export default function EducatorDetailScreen() {
   } = useQuery({
     queryKey: ['educator', id],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Educator }>(API_ROUTES.EDUCATORS.DETAIL(id!));
+      const res = await apiClient.get<{ success: boolean; data: Educator }>(
+        API_ROUTES.EDUCATORS.DETAIL(id!),
+      );
       return res.data.data;
     },
     enabled: Boolean(id),
   });
 
+  const isOwnProfile = Boolean(user && educator && user.id === educator.userId);
   const availableSlots = educator?.availableSlots || [];
 
   const handleBookNow = () => {
+    if (isOwnProfile) {
+      Alert.alert('Cannot Book', 'You cannot book a consultation with yourself.');
+      return;
+    }
     if (!selectedSlot) return;
     router.push({
       pathname: '/booking/[id]',
@@ -127,13 +144,23 @@ export default function EducatorDetailScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBox}>
-              <TouchableOpacity
-                onPress={() => router.push(`/chat/${educator.id}`)}
-                style={styles.chatIconBtn}
-              >
-                <MessageSquare size={16} color={colors.primary} />
-                <Text style={styles.chatIconText}>Chat</Text>
-              </TouchableOpacity>
+              {isOwnProfile ? (
+                <TouchableOpacity
+                  onPress={() => router.push('/profile/edit-educator')}
+                  style={styles.chatIconBtn}
+                >
+                  <Pencil size={16} color={colors.primary} />
+                  <Text style={styles.chatIconText}>Edit</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => router.push(`/chat/${educator.id}`)}
+                  style={styles.chatIconBtn}
+                >
+                  <MessageSquare size={16} color={colors.primary} />
+                  <Text style={styles.chatIconText}>Chat</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -174,8 +201,22 @@ export default function EducatorDetailScreen() {
         {/* Available Consultation Slots */}
         <View style={styles.sectionCard}>
           <View style={styles.slotHeaderRow}>
-            <Text style={styles.sectionHeading}>Select Available Time Slot</Text>
-            <Text style={styles.slotSubtitle}>{availableSlots.length} slots open</Text>
+            <View>
+              <Text style={styles.sectionHeading}>
+                {isOwnProfile ? 'Your Consultation Slots' : 'Select Available Time Slot'}
+              </Text>
+              <Text style={styles.slotSubtitle}>{availableSlots.length} slots open</Text>
+            </View>
+            {isOwnProfile && (
+              <TouchableOpacity
+                onPress={() => router.push('/educator/manage-slots')}
+                style={styles.manageSlotsHeaderBtn}
+                activeOpacity={0.8}
+              >
+                <Calendar size={13} color="#FFFFFF" />
+                <Text style={styles.manageSlotsHeaderBtnText}>Manage Slots</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {availableSlots.length === 0 ? (
@@ -241,9 +282,15 @@ export default function EducatorDetailScreen() {
           <Text style={styles.bottomBarPrice}>₹{educator.hourlyRate}</Text>
         </View>
         <PrimaryButton
-          title={selectedSlot ? 'Book Selected Slot' : 'Select a Slot Above'}
-          onPress={handleBookNow}
-          disabled={!selectedSlot}
+          title={
+            isOwnProfile
+              ? 'Edit Your Profile'
+              : selectedSlot
+                ? 'Book Selected Slot'
+                : 'Select a Slot Above'
+          }
+          onPress={isOwnProfile ? () => router.push('/profile/edit-educator') : handleBookNow}
+          disabled={!isOwnProfile && !selectedSlot}
           style={styles.bookButton}
         />
       </View>
@@ -421,6 +468,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.primary,
     fontWeight: '600',
+  },
+  manageSlotsHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0D9488',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: radius.md,
+    gap: 4,
+  },
+  manageSlotsHeaderBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   noSlotsText: {
     color: colors.textMuted,

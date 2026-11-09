@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import { db, sqlClient } from './db';
-import { runMigrations } from './migrate';
+import { db } from './db';
 import {
   bookings,
   chats,
@@ -12,16 +11,15 @@ import {
   reviews,
   subjects,
   users,
-  walletTransactions,
   wallets,
+  walletTransactions,
 } from './schema';
 
 export async function seedDatabase() {
-  console.log('🌱 Starting database seeding...');
-  await runMigrations();
-
   // Clear existing data in reverse dependency order
-  await sqlClient`TRUNCATE TABLE messages, chats, reviews, bookings, wallet_transactions, wallets, educator_availability, educator_subjects, educators, subjects, users CASCADE;`;
+  await db.execute(
+    'TRUNCATE TABLE messages, chats, reviews, bookings, wallet_transactions, wallets, educator_availability, educator_subjects, educators, subjects, users CASCADE;',
+  );
 
   const hashedPassword = await bcrypt.hash('password123', 10);
 
@@ -370,12 +368,12 @@ export async function seedDatabase() {
         rating: 5,
         comment: `Excellent session! ${ed.name} explained difficult concepts in the simplest way possible. Highly recommend!`,
       },
-      {
-        educatorId: ed.id,
-        userId: demoStudent.id,
-        rating: 5,
-        comment: 'Very patient and punctual. Solved all my doubts and provided practical guidance.',
-      },
+      // {
+      //   educatorId: ed.id,
+      //   userId: demoStudent.id,
+      //   rating: 5,
+      //   comment: 'Very patient and punctual. Solved all my doubts and provided practical guidance.',
+      // },
     ]);
   }
 

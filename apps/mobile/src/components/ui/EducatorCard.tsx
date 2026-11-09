@@ -1,11 +1,11 @@
-import type React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import type { Educator } from '@repo/shared';
 import { Image } from 'expo-image';
-import { BadgeCheck, Clock, Award } from 'lucide-react-native';
-import type { Educator } from '@expert/shared';
+import { Award, BadgeCheck, Clock } from 'lucide-react-native';
+import type React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors, radius, shadows, spacing } from '../../constants/theme';
-import { RatingStars } from './RatingStars';
 import { AvailabilityBadge } from './AvailabilityBadge';
+import { RatingStars } from './RatingStars';
 
 interface EducatorCardProps {
   educator: Educator;

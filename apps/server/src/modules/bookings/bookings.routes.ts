@@ -1,8 +1,8 @@
+import { cancelBookingSchema, createBookingSchema } from '@repo/validation';
 import { Router } from 'express';
-import { bookingsController } from './bookings.controller';
 import { requireAuth } from '../../middleware/auth';
 import { validateBody } from '../../middleware/validate';
-import { createBookingSchema, cancelBookingSchema } from '@expert/validation';
+import { bookingsController } from './bookings.controller';
 
 export const bookingsRouter = Router();
 
@@ -94,11 +94,109 @@ bookingsRouter.use(requireAuth);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-bookingsRouter.post('/', validateBody(createBookingSchema), (req, res, next) =>
-  bookingsController.createBooking(req, res, next),
-);
+bookingsRouter.post('/', validateBody(createBookingSchema), bookingsController.createBooking);
 
-bookingsRouter.get('/', (req, res, next) => bookingsController.getUserBookings(req, res, next));
+bookingsRouter.get('/', bookingsController.getUserBookings);
+
+/**
+ * @openapi
+ * /api/bookings/educator/earnings:
+ *   get:
+ *     tags:
+ *       - Bookings
+ *     summary: Get educator consultation earnings and statistics
+ *     description: Retrieve total consultation earnings and count of completed, confirmed, and cancelled sessions for the authenticated educator.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Educator earnings metrics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalEarnings:
+ *                       type: integer
+ *                       example: 12000
+ *                     completedBookingsCount:
+ *                       type: integer
+ *                       example: 20
+ *                     confirmedBookingsCount:
+ *                       type: integer
+ *                       example: 3
+ *                     cancelledBookingsCount:
+ *                       type: integer
+ *                       example: 2
+ *                     totalBookingsCount:
+ *                       type: integer
+ *                       example: 25
+ *       400:
+ *         description: Educator profile not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+bookingsRouter.get('/educator/earnings', bookingsController.getEducatorEarnings);
+
+/**
+ * @openapi
+ * /api/bookings/{id}/complete:
+ *   patch:
+ *     tags:
+ *       - Bookings
+ *     summary: Complete consultation booking
+ *     description: Mark an ongoing or confirmed booking as completed. Automatically credits the earned fee into the educator's wallet. Only the educator who was booked can complete the session.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Booking UUID
+ *     responses:
+ *       200:
+ *         description: Booking completed and consultation earnings credited
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Booking'
+ *       400:
+ *         description: Booking not found, cancelled, or caller is not educator
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+bookingsRouter.patch('/:id/complete', bookingsController.completeBooking);
 
 /**
  * @openapi
@@ -140,7 +238,7 @@ bookingsRouter.get('/', (req, res, next) => bookingsController.getUserBookings(r
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-bookingsRouter.get('/:id', (req, res, next) => bookingsController.getBookingById(req, res, next));
+bookingsRouter.get('/:id', bookingsController.getBookingById);
 
 /**
  * @openapi
@@ -192,6 +290,8 @@ bookingsRouter.get('/:id', (req, res, next) => bookingsController.getBookingById
  *       401:
  *         description: Unauthorized
  */
-bookingsRouter.patch('/:id/cancel', validateBody(cancelBookingSchema), (req, res, next) =>
-  bookingsController.cancelBooking(req, res, next),
+bookingsRouter.patch(
+  '/:id/cancel',
+  validateBody(cancelBookingSchema),
+  bookingsController.cancelBooking,
 );

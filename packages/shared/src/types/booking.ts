@@ -15,8 +15,18 @@ export interface Booking {
   educatorAvatar: string;
   educatorTitle: string;
   studentName?: string;
+  studentAvatar?: string | null;
+  studentEmail?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface EducatorEarningsSummary {
+  totalEarnings: number;
+  completedBookingsCount: number;
+  confirmedBookingsCount: number;
+  cancelledBookingsCount: number;
+  totalBookingsCount: number;
 }
 
 export interface CreateBookingRequest {

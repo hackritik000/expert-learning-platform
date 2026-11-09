@@ -1,11 +1,11 @@
 import type React from 'react';
 import { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet, type ViewStyle } from 'react-native';
+import { Animated, StyleSheet, type ViewStyle } from 'react-native';
 import { colors, radius } from '../../constants/theme';
 
 interface LoadingSkeletonProps {
   width?: number | string;
-  height?: number;
+  height?: number | string;
   borderRadius?: number;
   style?: ViewStyle;
 }

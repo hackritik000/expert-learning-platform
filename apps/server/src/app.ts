@@ -1,13 +1,13 @@
-import express from 'express';
 import cors from 'cors';
+import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger';
-import { authRouter } from './modules/auth/auth.routes';
-import { educatorsRouter, subjectsRouter } from './modules/educators/educators.routes';
-import { bookingsRouter } from './modules/bookings/bookings.routes';
-import { walletRouter } from './modules/wallet/wallet.routes';
-import { chatRouter } from './modules/chat/chat.routes';
 import { errorHandler } from './middleware/errorHandler';
+import { authRouter } from './modules/auth/auth.routes';
+import { bookingsRouter } from './modules/bookings/bookings.routes';
+import { chatRouter } from './modules/chat/chat.routes';
+import { educatorsRouter, subjectsRouter } from './modules/educators/educators.routes';
+import { walletRouter } from './modules/wallet/wallet.routes';
 
 export const app = express();
 

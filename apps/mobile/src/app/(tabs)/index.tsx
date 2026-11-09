@@ -1,13 +1,20 @@
-import { API_ROUTES, type Booking, type Educator, type Subject, type Wallet } from '@expert/shared';
+import {
+  API_ROUTES,
+  type Booking,
+  combineDateAndTime,
+  type Educator,
+  type Subject,
+  type Wallet,
+} from '@repo/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { ArrowRight, Video } from 'lucide-react-native';
 import React from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SearchTrigger } from '@/components/ui/SearchTrigger';
 import { EducatorCard } from '../../components/ui/EducatorCard';
 import { LoadingSkeleton } from '../../components/ui/LoadingSkeleton';
-import { SearchBar } from '../../components/ui/SearchBar';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { SubjectCard } from '../../components/ui/SubjectCard';
 import { WalletBalanceCard } from '../../components/ui/WalletBalanceCard';
@@ -20,7 +27,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuthStore();
-  const { search, setSearch, setSubject } = useFilterStore();
+  const { setSubject } = useFilterStore();
 
   // Queries
   const { data: walletData, refetch: refetchWallet } = useQuery({
@@ -63,6 +70,8 @@ export default function HomeScreen() {
     data: onlineData,
     isLoading: loadingOnline,
     refetch: refetchOnline,
+    error,
+    isError,
   } = useQuery({
     queryKey: ['educators', 'online'],
     queryFn: async () => {
@@ -72,6 +81,10 @@ export default function HomeScreen() {
       return res.data.data.educators;
     },
   });
+
+  if (isError) {
+    console.log('onlineData', error);
+  }
 
   const { data: bookingsData, refetch: refetchBookings } = useQuery({
     queryKey: ['bookings'],
@@ -97,7 +110,22 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  const upcomingBooking = bookingsData?.find((b) => b.status === 'confirmed');
+  const now = new Date();
+
+  const upcomingBooking = bookingsData
+    ?.filter((booking) => {
+      if (booking.status !== 'confirmed') return false;
+
+      const bookingDateTime = combineDateAndTime(booking.date, booking.startTime);
+
+      return bookingDateTime > now;
+    })
+    .sort((a, b) => {
+      const dateA = combineDateAndTime(a.date, a.startTime);
+      const dateB = combineDateAndTime(b.date, b.startTime);
+
+      return dateA.getTime() - dateB.getTime();
+    })[0];
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -108,7 +136,12 @@ export default function HomeScreen() {
 
   const handleSubjectSelect = (sub: Subject) => {
     setSubject(sub.id, sub.name);
-    router.push('/(tabs)/explore');
+    router.push('/explore');
+  };
+
+  const removeLastName = (name: string) => {
+    const parts = name.trim().split(/\s+/);
+    return parts.length > 1 ? parts.slice(0, -1).join(' ') : parts[0];
   };
 
   return (
@@ -117,14 +150,14 @@ export default function HomeScreen() {
       <View style={styles.topHeader}>
         <View>
           <Text style={styles.greeting}>{getGreeting()},</Text>
-          <Text style={styles.userName}>
-            {user?.name?.trim().split(' ').slice(0, -1).join(' ') || 'Scholar'} 👋
-          </Text>
+          <Text style={styles.userName}>{removeLastName(user?.name || 'Scholar')} 👋</Text>
         </View>
         <WalletBalanceCard
           compact
           balance={walletData?.balance ?? 0}
+          isEducator={user?.role === 'educator'}
           onRechargePress={() => router.push('/(tabs)/wallet')}
+          onWithdrawPress={() => router.push('/(tabs)/wallet')}
         />
       </View>
 
@@ -137,14 +170,7 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
         }
       >
-        {/* Search Bar */}
-        <SearchBar
-          value={search}
-          onChangeText={setSearch}
-          onClear={() => setSearch('')}
-          onFilterPress={() => router.push('/(tabs)/explore')}
-        />
-
+        <SearchTrigger />
         {/* Upcoming Consultation Banner if exists */}
         {upcomingBooking && (
           <View style={styles.upcomingBox}>
@@ -174,7 +200,7 @@ export default function HomeScreen() {
           title="Explore Subjects"
           subtitle="Choose from top academic & skill categories"
           actionText="See All"
-          onAction={() => router.push('/(tabs)/explore')}
+          onAction={() => router.push('/explore')}
         />
         {loadingSubjects ? (
           <View style={styles.horizontalLoading}>
@@ -200,7 +226,7 @@ export default function HomeScreen() {
           subtitle="Instant 1-on-1 consultations available right now"
           actionText="View Online"
           onAction={() => {
-            router.push('/(tabs)/explore');
+            router.push('/explore');
           }}
         />
         {loadingOnline ? (
@@ -230,7 +256,7 @@ export default function HomeScreen() {
           title="Top Rated Experts"
           subtitle="Highest ranked mentors verified by students"
           actionText="View All"
-          onAction={() => router.push('/(tabs)/explore')}
+          onAction={() => router.push('/explore')}
         />
         {loadingFeatured ? (
           <View style={styles.verticalLoading}>

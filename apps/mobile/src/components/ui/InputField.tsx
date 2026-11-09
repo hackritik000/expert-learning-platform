@@ -1,10 +1,10 @@
 import React from 'react';
 import {
-  View,
-  TextInput,
-  Text,
   StyleSheet,
+  Text,
+  TextInput,
   type TextInputProps,
+  View,
   type ViewStyle,
 } from 'react-native';
 import { colors, radius, spacing } from '../../constants/theme';
@@ -18,18 +18,7 @@ export interface InputFieldProps extends TextInputProps {
 }
 
 export const InputField = React.forwardRef<React.ComponentRef<typeof TextInput>, InputFieldProps>(
-  (
-    {
-      label,
-      error,
-      leftIcon,
-      rightIcon,
-      containerStyle,
-      style,
-      ...props
-    },
-    ref,
-  ) => {
+  ({ label, error, leftIcon, rightIcon, containerStyle, style, ...props }, ref) => {
     return (
       <View style={[styles.container, containerStyle]}>
         {label ? <Text style={styles.label}>{label}</Text> : null}

@@ -31,10 +31,12 @@ The platform connects learners with verified subject-matter experts across disci
 graph TD
     Client["📱 Mobile App (Expo SDK 58 / React Native 0.88)"]
     Server["⚡ Express 5 API Server (Bun / Node.js)"]
+    ImageHandler["🖼️ Image Handler Service (Bun + Elysia)"]
     DB[("🐘 PostgreSQL (Drizzle ORM)")]
-    Shared["📦 @expert/shared & @expert/validation"]
+    Shared["📦 @repo/shared & @repo/validation"]
 
     Client -->|REST API + JWT| Server
+    Client -->|Chunked Media Uploads| ImageHandler
     Server -->|SQL Queries & Migrations| DB
     Client -.->|Shared Types & Zod Schemas| Shared
     Server -.->|Shared Types & Zod Schemas| Shared
@@ -45,6 +47,7 @@ graph TD
 ## 🛠 Tech Stack
 
 ### Mobile Client (`apps/mobile`)
+
 - **Framework:** React Native 0.88 with **Expo SDK 58**
 - **Navigation:** Expo Router 58 (file-based, typed routes)
 - **State Management:** Zustand (client state) & TanStack Query v5 (server cache & optimistic updates)
@@ -54,17 +57,26 @@ graph TD
 - **Icons & UI:** Lucide React Native, custom responsive design system
 
 ### Backend Server (`apps/server`)
-- **Runtime:** Bun 1.4+ / Node.js 20+
+
+- **Runtime:** Bun 1.2+ / Node.js 22.12+
 - **Framework:** Express 5
 - **Database & ORM:** PostgreSQL + Drizzle ORM
 - **Authentication:** JWT with bcrypt password hashing
 - **API Documentation:** Swagger / OpenAPI UI
 - **Validation:** Zod request parsing & middleware
 
+### Image Handler Service (`apps/imagehandler`)
+
+- **Runtime:** **Bun 1.2+ (strictly required — uses native `Bun.file()` & `Bun.write()`)**
+- **Framework:** Elysia 1.4 with `@elysiajs/cors` & `@elysiajs/static`
+- **Port:** `3000` (serves static media from `/public`)
+- **Capabilities:** High-performance chunked media upload (`/upload/chunk`, `/upload/complete`), stream assembly, and static asset serving
+
 ### Monorepo & Tooling
+
 - **Package Manager:** pnpm 11 (workspaces with hoisted linker)
 - **Monorepo Engine:** Turborepo 2
-- **Linter & Formatter:** Biome 1.9
+- **Linter & Formatter:** Biome 2.6
 - **Type Checking:** TypeScript 5.8+ / 6.0+ strict mode
 
 ---
@@ -87,6 +99,12 @@ expert-learning-platform/
 │   │   │   ├── services/          # Axios API clients
 │   │   │   └── stores/            # Zustand authentication store
 │   │   ├── metro.config.js        # Monorepo Metro bundler resolver
+│   │   └── package.json
+│   │
+│   ├── imagehandler/              # Bun + Elysia microservice for chunked media uploads
+│   │   ├── src/
+│   │   │   └── index.ts           # Upload chunking, stream assembly & static file server
+│   │   ├── public/                # Publicly served uploads directory
 │   │   └── package.json
 │   │
 │   └── server/                    # Express backend API
@@ -140,7 +158,12 @@ expert-learning-platform/
    - Dedicated chat rooms between students and educators.
    - Real-time message bubbles, timestamps, sender indicators, and history.
 
-6. **📖 Interactive API Documentation:**
+6. **🖼️ Chunked Media & Avatar Handling (`imagehandler`):**
+   - Independent microservice handling resilient chunked uploads (`/upload/chunk`) and stream assembling (`/upload/complete`).
+   - Built with **Bun + Elysia** for optimal binary I/O.
+   - Serves uploaded media statically over `/public` at port `3000`.
+
+7. **📖 Interactive API Documentation:**
    - Live Swagger UI at `/api/docs` with request/response schemas.
 
 ---
@@ -149,9 +172,9 @@ expert-learning-platform/
 
 Ensure you have the following installed on your machine:
 
-- **Node.js**: `v20.x` or higher
-- **Bun**: `v1.2+` (recommended for server) or Node.js
-- **pnpm**: `v10.x` or `v11.x`
+- **Node.js**: `v22.12.0` or higher (Node 20 is not supported by pnpm 11)
+- **Bun**: `v1.2+` (**strictly required** to run `apps/imagehandler`, also supports `apps/server`)
+- **pnpm**: `v11.x`
 - **PostgreSQL**: `v15+` or `v16+` (or Docker for containerized Postgres)
 
 ---
@@ -177,6 +200,7 @@ cp apps/server/.env.example apps/server/.env
 ```
 
 Default configuration in `apps/server/.env`:
+
 ```env
 PORT=4000
 NODE_ENV=development
@@ -188,6 +212,7 @@ JWT_EXPIRES_IN=7d
 ### 3. Database Setup, Migrations & Seeding
 
 If using local PostgreSQL:
+
 ```bash
 # 1. Create the database
 createdb expert_learning
@@ -199,7 +224,8 @@ pnpm db:push
 pnpm db:seed
 ```
 
-*(Optional)* If you prefer Docker:
+_(Optional)_ If you prefer Docker:
+
 ```bash
 pnpm db:up     # Starts PostgreSQL container on port 5432
 pnpm db:push   # Applies schema
@@ -208,21 +234,27 @@ pnpm db:seed   # Seeds data
 
 ### 4. Running the Development Servers
 
-#### Concurrently (Both Server & Mobile):
+#### Concurrently (Full Stack):
+
 ```bash
 pnpm dev
 ```
 
 #### Individually:
+
 ```bash
-# Start Backend Server (runs on http://localhost:4000)
+# Start Express Backend API Server (runs on http://localhost:4000)
 pnpm dev:server
+
+# Start Image Handler Service (Bun required - runs on http://localhost:3000)
+pnpm dev:imagehandler
 
 # Start Mobile Metro Bundler (Expo SDK 58)
 pnpm dev:mobile
 ```
 
 From the Expo CLI terminal:
+
 - Press `w` to open in **Web browser**.
 - Press `a` to run on connected **Android Emulator / Device**.
 - Press `i` to run on **iOS Simulator**.
@@ -234,9 +266,9 @@ From the Expo CLI terminal:
 
 The database seed provides ready-to-use demo accounts:
 
-| Role | Email | Password | Initial Balance |
-| :--- | :--- | :--- | :--- |
-| **Student** | `student@demo.com` | `password123` | ₹1,500 |
+| Role         | Email               | Password      | Initial Balance         |
+| :----------- | :------------------ | :------------ | :---------------------- |
+| **Student**  | `student@demo.com`  | `password123` | ₹1,500                  |
 | **Educator** | `ananya@expert.com` | `password123` | ₹0 (Mentorship profile) |
 
 ---
@@ -248,26 +280,34 @@ Once the backend server is running, explore the interactive **Swagger UI** at:
 
 ### Key REST Endpoints
 
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :---: |
-| `GET` | `/health` | Server health check | No |
-| `POST` | `/api/auth/register` | Register new student or educator | No |
-| `POST` | `/api/auth/login` | Login and obtain JWT token | No |
-| `GET` | `/api/auth/me` | Fetch authenticated user profile | Yes |
-| `GET` | `/api/subjects` | List all subjects & categories | No |
-| `GET` | `/api/educators` | Query educators with search & filters | No |
-| `GET` | `/api/educators/:id` | Fetch educator profile and slots | No |
-| `GET` | `/api/educators/:id/slots` | Fetch available consultation slots | No |
-| `POST` | `/api/bookings` | Book consultation slot (wallet deduct) | Yes |
-| `GET` | `/api/bookings` | List user's consultation bookings | Yes |
-| `PATCH` | `/api/bookings/:id/cancel` | Cancel consultation and process refund | Yes |
-| `GET` | `/api/wallet` | Fetch current wallet balance | Yes |
-| `POST` | `/api/wallet/recharge` | Add funds to user wallet | Yes |
-| `GET` | `/api/wallet/transactions` | View wallet transaction history | Yes |
-| `GET` | `/api/chats` | List user chat conversations | Yes |
-| `GET` | `/api/chats/educator/:id` | Get or create chat room with educator | Yes |
-| `GET` | `/api/chats/:id/messages` | Fetch messages for chat room | Yes |
-| `POST` | `/api/chats/:id/messages` | Send message in consultation chat | Yes |
+| Method  | Endpoint                           | Description                                     | Auth Required |
+| :------ | :--------------------------------- | :---------------------------------------------- | :-----------: |
+| `GET`   | `/health`                          | Server health check                             |      No       |
+| `POST`  | `/api/auth/register`               | Register new student or educator                |      No       |
+| `POST`  | `/api/auth/login`                  | Login and obtain JWT token                      |      No       |
+| `GET`   | `/api/auth/me`                     | Fetch authenticated user profile                |      Yes      |
+| `PUT`   | `/api/auth/profile`                | Update user profile name, phone & avatar        |      Yes      |
+| `GET`   | `/api/subjects`                    | List all subjects & categories                  |      No       |
+| `GET`   | `/api/educators`                   | Query educators with search & filters           |      No       |
+| `GET`   | `/api/educators/me`                | Fetch current logged-in educator profile        |      Yes      |
+| `GET`   | `/api/educators/:id`               | Fetch educator profile and slots                |      No       |
+| `GET`   | `/api/educators/:id/slots`         | Fetch available consultation slots              |      No       |
+| `GET`   | `/api/educators/slots/manage`      | Fetch own availability slots (Educator)         |      Yes      |
+| `POST`  | `/api/educators/slots/manage`      | Create availability slot (Educator)             |      Yes      |
+| `POST`  | `/api/educators/slots/manage/batch`| Bulk create availability slots (Educator)       |      Yes      |
+| `POST`  | `/api/bookings`                    | Book consultation slot (wallet deduct)          |      Yes      |
+| `GET`   | `/api/bookings`                    | List user's consultation bookings               |      Yes      |
+| `GET`   | `/api/bookings/educator/earnings`  | Fetch educator earnings and consultation stats  |      Yes      |
+| `PATCH` | `/api/bookings/:id/cancel`         | Cancel consultation and process refund          |      Yes      |
+| `PATCH` | `/api/bookings/:id/complete`       | Complete session and credit educator earnings   |      Yes      |
+| `GET`   | `/api/wallet`                      | Fetch current wallet balance                    |      Yes      |
+| `POST`  | `/api/wallet/recharge`             | Add funds to user wallet                        |      Yes      |
+| `POST`  | `/api/wallet/withdraw`             | Withdraw funds to UPI or bank account           |      Yes      |
+| `GET`   | `/api/wallet/transactions`         | View wallet transaction history                 |      Yes      |
+| `GET`   | `/api/chats`                       | List user chat conversations                    |      Yes      |
+| `GET`   | `/api/chats/educator/:id`          | Get or create chat room with educator           |      Yes      |
+| `GET`   | `/api/chats/:id/messages`          | Fetch messages for chat room                    |      Yes      |
+| `POST`  | `/api/chats/:id/messages`          | Send message in consultation chat               |      Yes      |
 
 ---
 
@@ -275,14 +315,14 @@ Once the backend server is running, explore the interactive **Swagger UI** at:
 
 Run verification scripts across the entire monorepo using Turborepo:
 
-| Script | Command | Purpose |
-| :--- | :--- | :--- |
-| **Typecheck** | `pnpm check` | Runs `tsc --noEmit` across all 5 workspace packages |
-| **Unit Tests** | `pnpm test` | Runs validation and logic tests |
-| **Lint** | `pnpm lint` | Runs Biome linter check |
-| **Format** | `pnpm format` | Auto-formats code with Biome |
-| **Build** | `pnpm build` | Turbo build pipeline |
-| **Export Web** | `pnpm --filter @expert/mobile exec expo export -p web` | Verifies full client bundling |
+| Script         | Command                                              | Purpose                                             |
+| :------------- | :--------------------------------------------------- | :-------------------------------------------------- |
+| **Typecheck**  | `pnpm check`                                         | Runs `tsc --noEmit` across all 5 workspace packages |
+| **Unit Tests** | `pnpm test`                                          | Runs validation and logic tests                     |
+| **Lint**       | `pnpm lint`                                          | Runs Biome linter check                             |
+| **Format**     | `pnpm format`                                        | Auto-formats code with Biome                        |
+| **Build**      | `pnpm build`                                         | Turbo build pipeline                                |
+| **Export Web** | `pnpm --filter @repo/mobile exec expo export -p web` | Verifies full client bundling                       |
 
 ---
 
@@ -290,6 +330,7 @@ Run verification scripts across the entire monorepo using Turborepo:
 
 - **Physical Device API Connection:** When connecting from a physical phone using Expo Go, make sure your phone and development computer are on the same Wi-Fi network. By default, `apps/mobile/src/constants/config.ts` auto-detects the host IP from `Constants.expoConfig.hostUri`.
 - **Metro Cache Reset:** If encountering bundler caching glitches after switching branches:
+
   ```bash
   rm -rf /tmp/metro-* apps/mobile/.expo
   pnpm dev:mobile -- -c

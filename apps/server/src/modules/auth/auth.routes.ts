@@ -1,8 +1,8 @@
+import { loginSchema, registerSchema } from '@repo/validation';
 import { Router } from 'express';
-import { authController } from './auth.controller';
-import { validateBody } from '../../middleware/validate';
 import { requireAuth } from '../../middleware/auth';
-import { loginSchema, registerSchema } from '@expert/validation';
+import { validateBody } from '../../middleware/validate';
+import { authController } from './auth.controller';
 
 export const authRouter = Router();
 
@@ -67,9 +67,7 @@ export const authRouter = Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-authRouter.post('/register', validateBody(registerSchema), (req, res, next) =>
-  authController.register(req, res, next),
-);
+authRouter.post('/register', validateBody(registerSchema), authController.register);
 
 /**
  * @openapi
@@ -117,9 +115,7 @@ authRouter.post('/register', validateBody(registerSchema), (req, res, next) =>
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-authRouter.post('/login', validateBody(loginSchema), (req, res, next) =>
-  authController.login(req, res, next),
-);
+authRouter.post('/login', validateBody(loginSchema), authController.login);
 
 /**
  * @openapi
@@ -151,7 +147,158 @@ authRouter.post('/login', validateBody(loginSchema), (req, res, next) =>
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-authRouter.get('/me', requireAuth, (req, res, next) => authController.getMe(req, res, next));
+authRouter.get('/me', requireAuth, authController.getMe);
+
+/**
+ * @openapi
+ * /api/auth/profile:
+ *   put:
+ *     tags:
+ *       - Auth
+ *     summary: Update user profile
+ *     description: Update name, phone number, and avatar URL of the authenticated user. If user is an educator, synchronizes educator profile as well.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Demo Student
+ *               phoneNumber:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "+91 9876543210"
+ *               avatarUrl:
+ *                 type: string
+ *                 example: "https://images.unsplash.com/photo-1534528741775-53994a69daeb"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+authRouter.put('/profile', requireAuth, authController.updateProfile);
+
+/**
+ * @openapi
+ * /api/auth/me:
+ *   patch:
+ *     tags:
+ *       - Auth
+ *     summary: Update current user profile (patch)
+ *     description: Partially update authenticated user details (name, phone number, avatar URL).
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Demo Student
+ *               phoneNumber:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "+91 9876543210"
+ *               avatarUrl:
+ *                 type: string
+ *                 example: "https://images.unsplash.com/photo-1534528741775-53994a69daeb"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *   put:
+ *     tags:
+ *       - Auth
+ *     summary: Update current user profile (put)
+ *     description: Update authenticated user details (name, phone number, avatar URL).
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Demo Student
+ *               phoneNumber:
+ *                 type: string
+ *                 nullable: true
+ *                 example: "+91 9876543210"
+ *               avatarUrl:
+ *                 type: string
+ *                 example: "https://images.unsplash.com/photo-1534528741775-53994a69daeb"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+authRouter.patch('/me', requireAuth, authController.updateProfile);
+authRouter.put('/me', requireAuth, authController.updateProfile);
 
 /**
  * @openapi
@@ -184,4 +331,4 @@ authRouter.get('/me', requireAuth, (req, res, next) => authController.getMe(req,
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-authRouter.post('/logout', requireAuth, (req, res) => authController.logout(req, res));
+authRouter.post('/logout', requireAuth, authController.logout);

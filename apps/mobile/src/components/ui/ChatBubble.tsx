@@ -1,4 +1,4 @@
-import type { ChatMessage } from '@expert/shared';
+import type { ChatMessage } from '@repo/shared';
 import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from '../../constants/theme';
@@ -16,7 +16,14 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, isCurrentUser }
 
   return (
     <View style={[styles.container, isCurrentUser ? styles.containerUser : styles.containerOther]}>
-      {!isCurrentUser && <Text style={styles.senderName}>{message.senderName}</Text>}
+      {!isCurrentUser && (
+        <View style={styles.senderHeader}>
+          <Text style={styles.senderName}>{message.senderName}</Text>
+          <Text style={styles.senderRole}>
+            • {message.senderRole === 'educator' ? 'Educator' : 'Student'}
+          </Text>
+        </View>
+      )}
       <View style={[styles.bubble, isCurrentUser ? styles.bubbleUser : styles.bubbleOther]}>
         <Text style={[styles.text, isCurrentUser ? styles.textUser : styles.textOther]}>
           {message.content}
@@ -42,12 +49,21 @@ const styles = StyleSheet.create({
   containerOther: {
     alignSelf: 'flex-start',
   },
+  senderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+    marginLeft: 4,
+  },
   senderName: {
     fontSize: 11,
     fontWeight: '600',
     color: colors.textMuted,
-    marginBottom: 2,
-    marginLeft: 4,
+  },
+  senderRole: {
+    fontSize: 10,
+    color: colors.textLight,
   },
   bubble: {
     paddingHorizontal: spacing.md,

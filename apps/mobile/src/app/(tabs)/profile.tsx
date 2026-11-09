@@ -1,13 +1,37 @@
 import { Image } from 'expo-image';
-import { FileText, HelpCircle, LogOut, Shield, Sparkles } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import {
+  Calendar,
+  ChevronRight,
+  FileText,
+  HelpCircle,
+  LogOut,
+  Pencil,
+  Shield,
+  Sparkles,
+} from 'lucide-react-native';
+
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { resolveImageUrl } from '../../components/images/imagePicker';
 import { colors, radius, shadows, spacing } from '../../constants/theme';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+
   const { user, logout } = useAuthStore();
+
+  const handleEditProfile = () => {
+    if (user?.role === 'educator') {
+      router.push('/profile/edit-educator');
+    } else {
+      router.push('/profile/edit-student');
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to log out of your session?', [
@@ -23,62 +47,92 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Account Profile</Text>
+        <Text style={styles.title}>My Profile</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* User Info Card */}
+        {/* Profile Information */}
         <View style={styles.profileCard}>
           <Image
             source={{
               uri:
-                user?.avatarUrl ||
+                resolveImageUrl(user?.avatarUrl) ||
                 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
             }}
             style={styles.avatar}
             contentFit="cover"
           />
+
           <Text style={styles.name}>{user?.name || 'Scholar Student'}</Text>
+
           <Text style={styles.email}>{user?.email || 'student@demo.com'}</Text>
+
           <View style={styles.roleBadge}>
             <Shield size={12} color={colors.primary} />
             <Text style={styles.roleText}>{user?.role?.toUpperCase() || 'STUDENT'}</Text>
           </View>
+
+          {/* Edit Profile */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleEditProfile}
+            style={styles.editButton}
+          >
+            <Pencil size={16} color="#FFFFFF" />
+            <Text style={styles.editButtonText}>Edit Profile</Text>
+            <ChevronRight size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {/* Educator Slot Management */}
+          {user?.role === 'educator' && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push('/educator/manage-slots')}
+              style={styles.manageSlotsButton}
+            >
+              <Calendar size={16} color="#FFFFFF" />
+              <Text style={styles.manageSlotsButtonText}>Manage Available Slots</Text>
+              <ChevronRight size={16} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Demo Credentials & Evaluation Card */}
+        {/* Demo Credentials */}
         <View style={styles.demoCard}>
           <View style={styles.demoHeader}>
             <Sparkles size={16} color={colors.accent} />
             <Text style={styles.demoTitle}>Assignment Demo Credentials</Text>
           </View>
-          <Text style={styles.demoItem}>
-            • Student: <Text style={styles.code}>student@demo.com</Text> /{' '}
-            <Text style={styles.code}>password123</Text>
-          </Text>
-          <Text style={styles.demoItem}>
-            • Educator: <Text style={styles.code}>ananya@expert.com</Text> /{' '}
-            <Text style={styles.code}>password123</Text>
-          </Text>
+
+          <Text style={styles.demoItem}>• Student: student@demo.com / password123</Text>
+
+          <Text style={styles.demoItem}>• Educator: ananya@expert.com / password123</Text>
+
           <Text style={styles.demoNote}>
             Tokens persist in Expo SecureStore across app cold reloads.
           </Text>
         </View>
 
-        {/* Action items */}
+        {/* Menu */}
         <View style={styles.menuCard}>
           <TouchableOpacity style={styles.menuItem}>
             <HelpCircle size={20} color={colors.textLight} />
             <Text style={styles.menuText}>Help & Support</Text>
+            <View style={{ flex: 1 }} />
+            <ChevronRight size={18} color={colors.textLight} />
           </TouchableOpacity>
+
           <View style={styles.divider} />
+
           <TouchableOpacity style={styles.menuItem}>
             <FileText size={20} color={colors.textLight} />
             <Text style={styles.menuText}>Terms & Privacy Policy</Text>
+            <View style={{ flex: 1 }} />
+            <ChevronRight size={18} color={colors.textLight} />
           </TouchableOpacity>
         </View>
 
-        {/* Logout Button */}
+        {/* Logout */}
         <TouchableOpacity activeOpacity={0.8} onPress={handleLogout} style={styles.logoutBtn}>
           <LogOut size={18} color={colors.error} />
           <Text style={styles.logoutBtnText}>Log Out</Text>
@@ -87,8 +141,42 @@ export default function ProfileScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+    marginTop: spacing.md,
+    width: '100%',
+  },
+
+  editButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  manageSlotsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: '#0D9488', // Teal accent distinguishing slot management
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+    marginTop: spacing.xs + 4,
+    width: '100%',
+  },
+  manageSlotsButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

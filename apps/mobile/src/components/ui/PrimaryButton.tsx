@@ -1,11 +1,11 @@
 import type React from 'react';
 import {
-  TouchableOpacity,
-  Text,
   ActivityIndicator,
   StyleSheet,
-  type ViewStyle,
+  Text,
   type TextStyle,
+  TouchableOpacity,
+  type ViewStyle,
 } from 'react-native';
 import { colors, radius, shadows, spacing } from '../../constants/theme';
 

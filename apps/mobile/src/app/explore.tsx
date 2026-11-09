@@ -1,19 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { API_ROUTES, type Educator, type Subject } from '@repo/shared';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import { X, Sparkles } from 'lucide-react-native';
-import { API_ROUTES, type Educator, type Subject } from '@expert/shared';
-import { apiClient } from '../../services/api';
-import { useFilterStore } from '../../stores/filterStore';
-import { colors, radius, spacing } from '../../constants/theme';
-import { SearchBar } from '../../components/ui/SearchBar';
-import { EducatorCard } from '../../components/ui/EducatorCard';
-import { FilterBottomSheet } from '../../components/modals/FilterBottomSheet';
-import { LoadingSkeleton } from '../../components/ui/LoadingSkeleton';
-import { EmptyState } from '../../components/ui/EmptyState';
-import { ErrorState } from '../../components/ui/ErrorState';
+import { X } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FilterBottomSheet } from '../components/modals/FilterBottomSheet';
+import { EducatorCard } from '../components/ui/EducatorCard';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorState } from '../components/ui/ErrorState';
+import { LoadingSkeleton } from '../components/ui/LoadingSkeleton';
+import { SearchBar } from '../components/ui/SearchBar';
+import { colors, radius, spacing } from '../constants/theme';
+import { apiClient } from '../services/api';
+import { useFilterStore } from '../stores/filterStore';
+
+interface EducatorsApiResponse {
+  educators: Educator[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+const PAGE_SIZE = 10;
 
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
@@ -50,13 +68,24 @@ export default function ExploreScreen() {
   const { data: subjects = [] } = useQuery({
     queryKey: ['subjects'],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Subject[] }>(API_ROUTES.SUBJECTS.LIST);
+      const res = await apiClient.get<{ success: boolean; data: Subject[] }>(
+        API_ROUTES.SUBJECTS.LIST,
+      );
       return res.data.data;
     },
   });
 
-  // Fetch educators with active filters
-  const { data, isLoading, isError, refetch } = useQuery({
+  // Fetch educators with active filters using infinite query for pagination
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: [
       'educators',
       debouncedSearch,
@@ -67,8 +96,11 @@ export default function ExploreScreen() {
       isOnline,
       sortBy,
     ],
-    queryFn: async () => {
+    initialPageParam: 1,
+    queryFn: async ({ pageParam = 1 }) => {
       const params = new URLSearchParams();
+      params.append('page', String(pageParam));
+      params.append('limit', String(PAGE_SIZE));
       if (debouncedSearch) params.append('search', debouncedSearch);
       if (subjectId) params.append('subjectId', subjectId);
       if (minPrice !== undefined) params.append('minPrice', String(minPrice));
@@ -78,14 +110,30 @@ export default function ExploreScreen() {
       if (sortBy) params.append('sortBy', sortBy);
 
       const queryString = params.toString();
-      const endpoint = queryString ? `${API_ROUTES.EDUCATORS.LIST}?${queryString}` : API_ROUTES.EDUCATORS.LIST;
+      const endpoint = `${API_ROUTES.EDUCATORS.LIST}?${queryString}`;
       const res = await apiClient.get<{
         success: boolean;
-        data: { educators: Educator[]; total: number };
+        data: EducatorsApiResponse;
       }>(endpoint);
       return res.data.data;
     },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page < lastPage.totalPages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
   });
+
+  const educators = useMemo(() => {
+    return data?.pages.flatMap((page) => page.educators) ?? [];
+  }, [data]);
+
+  const handleEndReached = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
 
   const hasActiveFilters = Boolean(
     subjectId || minPrice || maxPrice || minRating || isOnline || sortBy !== 'rating',
@@ -153,7 +201,7 @@ export default function ExploreScreen() {
         </View>
       ) : isError ? (
         <ErrorState onRetry={refetch} />
-      ) : data?.educators.length === 0 ? (
+      ) : educators.length === 0 ? (
         <EmptyState
           title="No Mentors Found"
           description="Try loosening your filters or searching for another keyword or subject."
@@ -162,7 +210,7 @@ export default function ExploreScreen() {
         />
       ) : (
         <FlatList
-          data={data?.educators}
+          data={educators}
           keyExtractor={(item) => item.id}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
@@ -171,9 +219,19 @@ export default function ExploreScreen() {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.footerLoaderText}>Loading more mentors...</Text>
+              </View>
+            ) : undefined
+          }
           refreshControl={
             <RefreshControl
-              refreshing={isLoading}
+              refreshing={isRefetching && !isFetchingNextPage}
               onRefresh={() => {
                 refetch();
               }}
@@ -265,5 +323,16 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: spacing.xxl,
+  },
+  footerLoader: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  footerLoaderText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '500',
   },
 });

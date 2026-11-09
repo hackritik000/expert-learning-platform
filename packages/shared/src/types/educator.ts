@@ -24,6 +24,13 @@ export interface TimeSlot {
   isBooked: boolean;
 }
 
+export interface ManagedTimeSlot extends TimeSlot {
+  studentName?: string | null;
+  bookingId?: string | null;
+  bookingStatus?: string | null;
+  createdAt?: string;
+}
+
 export interface Educator {
   id: string;
   userId: string;
@@ -54,4 +61,42 @@ export interface EducatorFilterParams {
   sortBy?: 'rating' | 'price_asc' | 'price_desc' | 'experience';
   page?: number;
   limit?: number;
+}
+
+export interface RegisterEducatorProfileInput {
+  title: string;
+  bio: string;
+  subjects?: string[];
+  subjectIds?: string[];
+  experience?: number;
+  experienceYears?: number;
+  ratePerSession?: number;
+  hourlyRate?: number;
+  rate?: number;
+  education?: string;
+  languages?: string[];
+  avatarUrl?: string;
+}
+
+export interface UpdateEducatorProfileInput {
+  title?: string;
+  bio?: string;
+  subjects?: string[];
+  subjectIds?: string[];
+  experience?: number;
+  experienceYears?: number;
+  ratePerSession?: number;
+  hourlyRate?: number;
+  rate?: number;
+  education?: string;
+  languages?: string[];
+  avatarUrl?: string;
+  isOnline?: boolean;
+}
+
+export interface RegisterEducatorInput extends RegisterEducatorProfileInput {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
 }

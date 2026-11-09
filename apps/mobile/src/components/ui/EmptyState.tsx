@@ -1,6 +1,6 @@
-import type React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { Inbox } from 'lucide-react-native';
+import type React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from '../../constants/theme';
 import { PrimaryButton } from './PrimaryButton';
 

@@ -1,4 +1,4 @@
-import { API_ROUTES, type Booking } from '@expert/shared';
+import { API_ROUTES, type Booking } from '@repo/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Calendar } from 'lucide-react-native';
@@ -19,12 +19,15 @@ import { LoadingSkeleton } from '../../components/ui/LoadingSkeleton';
 import { colors, radius, spacing } from '../../constants/theme';
 import { queryClient } from '../../lib/queryClient';
 import { apiClient } from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
 
 type FilterTab = 'all' | 'confirmed' | 'completed' | 'cancelled';
 
 export default function BookingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user } = useAuthStore();
+  const isEducator = user?.role === 'educator';
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
 
   const {
@@ -44,7 +47,7 @@ export default function BookingsScreen() {
   const cancelMutation = useMutation({
     mutationFn: async (bookingId: string) => {
       const res = await apiClient.patch(API_ROUTES.BOOKINGS.CANCEL(bookingId), {
-        reason: 'Student cancelled consultation',
+        reason: isEducator ? 'Educator cancelled consultation' : 'Student cancelled consultation',
       });
       return res.data;
     },
@@ -52,23 +55,59 @@ export default function BookingsScreen() {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       queryClient.invalidateQueries({ queryKey: ['walletTransactions'] });
-      Alert.alert('Consultation Cancelled', 'Your fee has been fully refunded to your wallet.');
+      queryClient.invalidateQueries({ queryKey: ['educatorEarnings'] });
+      Alert.alert(
+        'Consultation Cancelled',
+        isEducator
+          ? 'The session has been cancelled and fee refunded to the student.'
+          : 'Your fee has been fully refunded to your wallet.',
+      );
     },
     onError: (err: any) => {
       Alert.alert('Cancellation Error', err.message || 'Failed to cancel consultation');
     },
   });
 
+  const completeMutation = useMutation({
+    mutationFn: async (bookingId: string) => {
+      const res = await apiClient.patch(API_ROUTES.BOOKINGS.COMPLETE(bookingId));
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['educatorEarnings'] });
+      Alert.alert('Consultation Completed', 'Session marked as completed successfully!');
+    },
+    onError: (err: any) => {
+      Alert.alert('Error', err.message || 'Failed to complete consultation');
+    },
+  });
+
   const handleCancel = (booking: Booking) => {
+    const counterparty = isEducator ? booking.studentName || 'the student' : booking.educatorName;
     Alert.alert(
       'Cancel Consultation',
-      `Are you sure you want to cancel your session with ${booking.educatorName}? ₹${booking.amount} will be refunded to your wallet.`,
+      `Are you sure you want to cancel the session with ${counterparty}? ₹${booking.amount} will be refunded to the student's wallet.`,
       [
         { text: 'Keep Session', style: 'cancel' },
         {
           text: 'Yes, Cancel',
           style: 'destructive',
           onPress: () => cancelMutation.mutate(booking.id),
+        },
+      ],
+    );
+  };
+
+  const handleComplete = (booking: Booking) => {
+    Alert.alert(
+      'Complete Session',
+      `Mark consultation with ${booking.studentName || 'student'} as completed?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, Complete',
+          onPress: () => completeMutation.mutate(booking.id),
         },
       ],
     );
@@ -89,9 +128,11 @@ export default function BookingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Consultations</Text>
+        <Text style={styles.title}>{isEducator ? 'Educator Bookings' : 'My Consultations'}</Text>
         <Text style={styles.subtitle}>
-          Track upcoming 1-on-1 sessions, chats, and previous consultations
+          {isEducator
+            ? 'Track sessions booked by students and student consultations'
+            : 'Track upcoming 1-on-1 sessions, chats, and previous consultations'}
         </Text>
       </View>
 
@@ -121,11 +162,13 @@ export default function BookingsScreen() {
           title="No Consultations Found"
           description={
             activeTab === 'all'
-              ? 'You have not booked any consultations yet. Explore top educators to schedule your first session!'
+              ? isEducator
+                ? 'You do not have any student bookings yet.'
+                : 'You have not booked any consultations yet. Explore top educators to schedule your first session!'
               : `You have no ${activeTab} consultations at the moment.`
           }
-          actionTitle="Explore Experts"
-          onAction={() => router.push('/(tabs)/explore')}
+          actionTitle={isEducator ? 'Manage Slots' : 'Explore Experts'}
+          onAction={() => router.push(isEducator ? '/educator/manage-slots' : '/explore')}
           icon={<Calendar size={32} color={colors.primary} />}
         />
       ) : (
@@ -135,8 +178,16 @@ export default function BookingsScreen() {
           renderItem={({ item }) => (
             <BookingCard
               booking={item}
-              onChatPress={() => router.push(`/chat/${item.educatorId}`)}
+              isEducator={isEducator}
+              onChatPress={() =>
+                router.push(
+                  isEducator
+                    ? `/chat/${item.id}` // chat screen handles room navigation
+                    : `/chat/${item.educatorId}`,
+                )
+              }
               onCancelPress={() => handleCancel(item)}
+              onCompletePress={() => handleComplete(item)}
             />
           )}
           contentContainerStyle={styles.listContent}

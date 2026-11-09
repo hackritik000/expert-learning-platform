@@ -1,25 +1,40 @@
-import type React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { type Booking, combineDateAndTime } from '@repo/shared';
 import { Image } from 'expo-image';
-import { Calendar, Clock, MessageSquare, Ban } from 'lucide-react-native';
-import type { Booking } from '@expert/shared';
+import { Ban, Calendar, Clock, MessageSquare } from 'lucide-react-native';
+import type React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors, radius, shadows, spacing } from '../../constants/theme';
 
 interface BookingCardProps {
   booking: Booking;
+  isEducator?: boolean;
   onChatPress?: () => void;
   onCancelPress?: () => void;
+  onCompletePress?: () => void;
   onPress?: () => void;
 }
 
 export const BookingCard: React.FC<BookingCardProps> = ({
   booking,
+  isEducator = false,
   onChatPress,
   onCancelPress,
+  onCompletePress,
   onPress,
 }) => {
   const isCancelled = booking.status === 'cancelled';
   const isCompleted = booking.status === 'completed';
+  const bookingStart = combineDateAndTime(booking.date, booking.startTime);
+  const isBookingNotStarted = bookingStart > new Date();
+
+  const displayName = isEducator ? booking.studentName || 'Student' : booking.educatorName;
+  const displaySubtitle = isEducator
+    ? booking.studentEmail || 'Consultation Student'
+    : booking.educatorTitle;
+  const displayAvatar = isEducator
+    ? booking.studentAvatar ||
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'
+    : booking.educatorAvatar;
 
   const getStatusColor = () => {
     switch (booking.status) {
@@ -39,13 +54,13 @@ export const BookingCard: React.FC<BookingCardProps> = ({
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={styles.card}>
       <View style={styles.topRow}>
-        <Image source={{ uri: booking.educatorAvatar }} style={styles.avatar} contentFit="cover" />
+        <Image source={{ uri: displayAvatar }} style={styles.avatar} contentFit="cover" />
         <View style={styles.headerInfo}>
           <Text style={styles.name} numberOfLines={1}>
-            {booking.educatorName}
+            {displayName}
           </Text>
           <Text style={styles.title} numberOfLines={1}>
-            {booking.educatorTitle}
+            {displaySubtitle}
           </Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
@@ -78,11 +93,23 @@ export const BookingCard: React.FC<BookingCardProps> = ({
           {onChatPress && (
             <TouchableOpacity activeOpacity={0.8} onPress={onChatPress} style={styles.chatBtn}>
               <MessageSquare size={15} color={colors.white} />
-              <Text style={styles.chatBtnText}>Chat with Expert</Text>
+              <Text style={styles.chatBtnText}>
+                {isEducator ? 'Chat Student' : 'Chat with Expert'}
+              </Text>
             </TouchableOpacity>
           )}
 
-          {onCancelPress && (
+          {isEducator && onCompletePress && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={onCompletePress}
+              style={styles.completeBtn}
+            >
+              <Text style={styles.completeBtnText}>Mark Completed</Text>
+            </TouchableOpacity>
+          )}
+
+          {isBookingNotStarted && onCancelPress && (
             <TouchableOpacity activeOpacity={0.8} onPress={onCancelPress} style={styles.cancelBtn}>
               <Ban size={15} color={colors.error} />
               <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -188,6 +215,20 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chatBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  completeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.success,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+  },
+  completeBtnText: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.white,

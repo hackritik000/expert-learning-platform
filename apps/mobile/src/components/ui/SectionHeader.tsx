@@ -1,5 +1,5 @@
 import type React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors, spacing } from '../../constants/theme';
 
 interface SectionHeaderProps {

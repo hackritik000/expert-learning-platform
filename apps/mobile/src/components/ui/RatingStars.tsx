@@ -1,6 +1,6 @@
-import type React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { Star } from 'lucide-react-native';
+import type React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors, spacing } from '../../constants/theme';
 
 interface RatingStarsProps {

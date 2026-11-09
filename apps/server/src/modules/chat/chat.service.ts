@@ -1,46 +1,229 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
-import { db, sqlClient } from '../../database/db';
-import { chats, educators, messages, users } from '../../database/schema';
+import { evaluateSessionAccess } from '@repo/shared';
+import { and, asc, desc, eq, ne, or, sql } from 'drizzle-orm';
+import { db } from '../../database/db';
+import { bookings, chats, educators, messages, users } from '../../database/schema';
 
 export class ChatService {
-  async getUserChats(userId: string) {
-    const chatList = await sqlClient`
-      SELECT 
-        c.id, c.educator_id, c.user_id, c.created_at, c.updated_at,
-        e.name as educator_name, e.avatar_url as educator_avatar, e.is_online,
-        u.name as user_name,
-        (
-          SELECT content FROM messages m 
-          WHERE m.chat_id = c.id 
-          ORDER BY m.created_at DESC LIMIT 1
-        ) as last_message,
-        (
-          SELECT created_at FROM messages m 
-          WHERE m.chat_id = c.id 
-          ORDER BY m.created_at DESC LIMIT 1
-        ) as last_message_at
-      FROM chats c
-      JOIN educators e ON e.id = c.educator_id
-      JOIN users u ON u.id = c.user_id
-      WHERE c.user_id = ${userId}
-      ORDER BY COALESCE(c.updated_at, c.created_at) DESC
-    `;
+  async getUserChats(userId: string, role: string) {
+    if (role === 'educator') {
+      const [educator] = await db.select().from(educators).where(eq(educators.userId, userId));
 
-    return chatList.map((c: any) => ({
-      id: c.id,
-      educatorId: c.educator_id,
-      educatorName: c.educator_name,
-      educatorAvatar: c.educator_avatar,
-      isOnline: c.is_online,
-      userId: c.user_id,
-      userName: c.user_name,
-      lastMessage: c.last_message || null,
-      lastMessageAt: c.last_message_at || null,
-      unreadCount: 0,
-    }));
+      if (!educator) {
+        return [];
+      }
+
+      const chatList = await db
+        .select({
+          id: chats.id,
+          educatorId: chats.educatorId,
+          userId: chats.userId,
+          educatorName: educators.name,
+          educatorAvatar: educators.avatarUrl,
+          isOnline: educators.isOnline,
+          userName: users.name,
+          userAvatar: users.avatarUrl,
+          lastMessage: sql<string | null>`(
+            SELECT ${messages.content}
+            FROM ${messages}
+            WHERE ${messages.chatId} = ${chats.id}
+            ORDER BY ${messages.createdAt} DESC
+            LIMIT 1
+          )`,
+          lastMessageAt: sql<Date | null>`(
+            SELECT ${messages.createdAt}
+            FROM ${messages}
+            WHERE ${messages.chatId} = ${chats.id}
+            ORDER BY ${messages.createdAt} DESC
+            LIMIT 1
+          )`,
+        })
+        .from(chats)
+        .innerJoin(educators, eq(chats.educatorId, educators.id))
+        .innerJoin(users, eq(chats.userId, users.id))
+        .where(and(eq(chats.educatorId, educator.id), ne(chats.userId, userId)))
+        .orderBy(desc(sql`COALESCE(${chats.updatedAt}, ${chats.createdAt})`));
+
+      const chatsWithSession = await Promise.all(
+        chatList.map(async (chat) => {
+          const studentBookings = await db
+            .select({
+              id: bookings.id,
+              date: bookings.date,
+              startTime: bookings.startTime,
+              endTime: bookings.endTime,
+              status: bookings.status,
+            })
+            .from(bookings)
+            .where(
+              and(
+                eq(bookings.userId, chat.userId),
+                eq(bookings.educatorId, chat.educatorId),
+                eq(bookings.status, 'confirmed'),
+              ),
+            );
+
+          const sessionStatus = evaluateSessionAccess(studentBookings);
+
+          return {
+            ...chat,
+            lastMessage: chat.lastMessage ?? null,
+            lastMessageAt: chat.lastMessageAt ? new Date(chat.lastMessageAt).toISOString() : null,
+            unreadCount: 0,
+            sessionStatus,
+          };
+        }),
+      );
+
+      return chatsWithSession;
+    }
+
+    const chatList = await db
+      .select({
+        id: chats.id,
+        educatorId: chats.educatorId,
+        userId: chats.userId,
+        educatorName: educators.name,
+        educatorAvatar: educators.avatarUrl,
+        isOnline: educators.isOnline,
+        userName: users.name,
+        userAvatar: users.avatarUrl,
+        lastMessage: sql<string | null>`(
+          SELECT ${messages.content}
+          FROM ${messages}
+          WHERE ${messages.chatId} = ${chats.id}
+          ORDER BY ${messages.createdAt} DESC
+          LIMIT 1
+        )`,
+        lastMessageAt: sql<Date | null>`(
+          SELECT ${messages.createdAt}
+          FROM ${messages}
+          WHERE ${messages.chatId} = ${chats.id}
+          ORDER BY ${messages.createdAt} DESC
+          LIMIT 1
+        )`,
+      })
+      .from(chats)
+      .innerJoin(educators, eq(chats.educatorId, educators.id))
+      .innerJoin(users, eq(chats.userId, users.id))
+      .where(and(eq(chats.userId, userId), ne(educators.userId, userId)))
+      .orderBy(desc(sql`COALESCE(${chats.updatedAt}, ${chats.createdAt})`));
+
+    const chatsWithSession = await Promise.all(
+      chatList.map(async (chat) => {
+        const studentBookings = await db
+          .select({
+            id: bookings.id,
+            date: bookings.date,
+            startTime: bookings.startTime,
+            endTime: bookings.endTime,
+            status: bookings.status,
+          })
+          .from(bookings)
+          .where(
+            and(
+              eq(bookings.userId, chat.userId),
+              eq(bookings.educatorId, chat.educatorId),
+              eq(bookings.status, 'confirmed'),
+            ),
+          );
+
+        const sessionStatus = evaluateSessionAccess(studentBookings);
+
+        return {
+          ...chat,
+          lastMessage: chat.lastMessage ?? null,
+          lastMessageAt: chat.lastMessageAt ? new Date(chat.lastMessageAt).toISOString() : null,
+          unreadCount: 0,
+          sessionStatus,
+        };
+      }),
+    );
+
+    return chatsWithSession;
+  }
+
+  async getChatById(userId: string, targetId: string) {
+    // 1. Check if targetId matches an existing chat ID
+    const [chat] = await db
+      .select({
+        id: chats.id,
+        educatorId: chats.educatorId,
+        userId: chats.userId,
+        educatorName: educators.name,
+        educatorAvatar: educators.avatarUrl,
+        isOnline: educators.isOnline,
+        educatorUserId: educators.userId,
+        userName: users.name,
+        userAvatar: users.avatarUrl,
+      })
+      .from(chats)
+      .innerJoin(educators, eq(chats.educatorId, educators.id))
+      .innerJoin(users, eq(chats.userId, users.id))
+      .where(eq(chats.id, targetId));
+
+    if (chat) {
+      if (chat.userId === chat.educatorUserId) {
+        throw new Error('Self-chat is not allowed');
+      }
+
+      if (chat.userId !== userId && chat.educatorUserId !== userId) {
+        throw new Error('Not authorized to access this chat');
+      }
+
+      const studentBookings = await db
+        .select({
+          id: bookings.id,
+          date: bookings.date,
+          startTime: bookings.startTime,
+          endTime: bookings.endTime,
+          status: bookings.status,
+        })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.userId, chat.userId),
+            eq(bookings.educatorId, chat.educatorId),
+            eq(bookings.status, 'confirmed'),
+          ),
+        );
+
+      const sessionStatus = evaluateSessionAccess(studentBookings);
+
+      return {
+        id: chat.id,
+        educatorId: chat.educatorId,
+        educatorName: chat.educatorName,
+        educatorAvatar: chat.educatorAvatar,
+        isOnline: chat.isOnline,
+        userId: chat.userId,
+        userName: chat.userName,
+        userAvatar: chat.userAvatar,
+        sessionStatus,
+      };
+    }
+
+    // 2. If no chat room found with this ID, check if targetId is an educator ID (for student starting chat)
+    const [educator] = await db.select().from(educators).where(eq(educators.id, targetId));
+    if (educator) {
+      if (educator.userId === userId) {
+        throw new Error('Educators cannot start a chat with themselves');
+      }
+      return this.getOrCreateChatByEducator(userId, targetId);
+    }
+
+    throw new Error('Chat not found');
   }
 
   async getOrCreateChatByEducator(userId: string, educatorId: string) {
+    const [educator] = await db.select().from(educators).where(eq(educators.id, educatorId));
+    if (!educator) {
+      throw new Error('Educator not found');
+    }
+
+    if (educator.userId === userId) {
+      throw new Error('Educators cannot start a chat with themselves');
+    }
+
     let [chat] = await db
       .select()
       .from(chats)
@@ -53,76 +236,162 @@ export class ChatService {
           userId,
           educatorId,
         })
+        .onConflictDoNothing()
         .returning();
+
+      // Handle concurrent chat creation
+      if (!chat) {
+        [chat] = await db
+          .select()
+          .from(chats)
+          .where(and(eq(chats.userId, userId), eq(chats.educatorId, educatorId)));
+      }
     }
 
-    const [educator] = await db.select().from(educators).where(eq(educators.id, educatorId));
+    if (!chat) {
+      throw new Error('Unable to create or retrieve chat');
+    }
+
+    const [student] = await db.select().from(users).where(eq(users.id, userId));
+
+    const studentBookings = await db
+      .select({
+        id: bookings.id,
+        date: bookings.date,
+        startTime: bookings.startTime,
+        endTime: bookings.endTime,
+        status: bookings.status,
+      })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.userId, userId),
+          eq(bookings.educatorId, educatorId),
+          eq(bookings.status, 'confirmed'),
+        ),
+      );
+
+    const sessionStatus = evaluateSessionAccess(studentBookings);
 
     return {
       id: chat.id,
       educatorId: chat.educatorId,
-      educatorName: educator?.name || 'Educator',
-      educatorAvatar: educator?.avatarUrl || '',
-      isOnline: educator?.isOnline || false,
+      educatorName: educator.name,
+      educatorAvatar: educator.avatarUrl,
+      isOnline: educator.isOnline,
       userId: chat.userId,
+      userName: student?.name || 'Student',
+      userAvatar: student?.avatarUrl || '',
+      sessionStatus,
     };
   }
 
   async getChatMessages(userId: string, chatId: string) {
-    // Verify user owns chat
+    // Verify user participates in chat (either student or educator)
     const [chat] = await db
-      .select()
+      .select({
+        id: chats.id,
+        educatorId: chats.educatorId,
+        userId: chats.userId,
+        educatorUserId: educators.userId,
+      })
       .from(chats)
-      .where(and(eq(chats.id, chatId), eq(chats.userId, userId)));
+      .innerJoin(educators, eq(chats.educatorId, educators.id))
+      .where(and(eq(chats.id, chatId), or(eq(chats.userId, userId), eq(educators.userId, userId))));
 
     if (!chat) {
       throw new Error('Chat not found');
     }
 
-    const msgList = await sqlClient`
-    SELECT
-      m.id,
-      m.chat_id,
-      m.sender_id,
-      m.sender_role,
-      m.content,
-      m.created_at,
-      u.name AS sender_name
-    FROM messages m
-    JOIN users u ON u.id = m.sender_id
-    WHERE m.chat_id = ${chatId}
-    ORDER BY m.created_at ASC
-  `;
+    if (chat.userId === chat.educatorUserId) {
+      throw new Error('Self-chat is not allowed');
+    }
 
-    return msgList.map((m: any) => ({
-      id: m.id,
-      chatId: m.chat_id,
-      senderId: m.sender_id,
-      senderName: m.sender_name,
-      senderRole: m.sender_role,
-      content: m.content,
-      createdAt: new Date(m.created_at).toISOString(),
+    const msgList = await db
+      .select({
+        id: messages.id,
+        chatId: messages.chatId,
+        senderId: messages.senderId,
+        senderRole: messages.senderRole,
+        content: messages.content,
+        createdAt: messages.createdAt,
+        senderName: users.name,
+      })
+      .from(messages)
+      .innerJoin(users, eq(messages.senderId, users.id))
+      .where(eq(messages.chatId, chatId))
+      .orderBy(asc(messages.createdAt));
+
+    return msgList.map((message) => ({
+      id: message.id,
+      chatId: message.chatId,
+      senderId: message.senderId,
+      senderName: message.senderName,
+      senderRole: message.senderRole,
+      content: message.content,
+      createdAt: message.createdAt.toISOString(),
     }));
   }
 
   async sendMessage(userId: string, chatId: string, content: string) {
+    // Verify user participates in chat (either student or educator)
     const [chat] = await db
-      .select()
+      .select({
+        id: chats.id,
+        educatorId: chats.educatorId,
+        userId: chats.userId,
+        educatorUserId: educators.userId,
+      })
       .from(chats)
-      .where(and(eq(chats.id, chatId), eq(chats.userId, userId)));
+      .innerJoin(educators, eq(chats.educatorId, educators.id))
+      .where(and(eq(chats.id, chatId), or(eq(chats.userId, userId), eq(educators.userId, userId))));
 
     if (!chat) {
       throw new Error('Chat not found');
     }
 
+    if (chat.userId === chat.educatorUserId) {
+      throw new Error('You cannot send messages to yourself');
+    }
+
     const [user] = await db.select().from(users).where(eq(users.id, userId));
+
+    const isEducator = chat.educatorUserId === userId;
+    const senderRole: 'educator' | 'student' = isEducator ? 'educator' : 'student';
+
+    // Verify session timing for consultation chat
+    const studentBookings = await db
+      .select({
+        id: bookings.id,
+        date: bookings.date,
+        startTime: bookings.startTime,
+        endTime: bookings.endTime,
+        status: bookings.status,
+      })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.userId, chat.userId),
+          eq(bookings.educatorId, chat.educatorId),
+          eq(bookings.status, 'confirmed'),
+        ),
+      );
+
+    const access = evaluateSessionAccess(studentBookings, new Date());
+
+    if (!isEducator && !access.canChat) {
+      const err = new Error(access.message);
+      (err as any).statusCode = 403;
+      (err as any).sessionStatus = access.status;
+      throw err;
+    }
 
     const [newMessage] = await db
       .insert(messages)
       .values({
         chatId,
         senderId: userId,
-        senderRole: 'student',
+        senderRole,
         content,
       })
       .returning();
@@ -130,41 +399,44 @@ export class ChatService {
     // Update chat timestamp
     await db.update(chats).set({ updatedAt: new Date() }).where(eq(chats.id, chatId));
 
-    // Simulated educator response after a short timeout to provide an interactive AstroTalk-like feel
-    setTimeout(async () => {
-      try {
-        const [educator] = await db
-          .select()
-          .from(educators)
-          .where(eq(educators.id, chat.educatorId));
+    // Simulated educator response (only if sent by student during active session)
+    if (!isEducator && access.canChat) {
+      setTimeout(async () => {
+        try {
+          const [educator] = await db
+            .select()
+            .from(educators)
+            .where(eq(educators.id, chat.educatorId));
 
-        if (educator?.userId) {
-          const autoReplies = [
-            `Thank you for reaching out! I've noted down your question: "${content.slice(0, 30)}..." and I look forward to discussing it during our consultation.`,
-            'Glad to hear from you! Please feel free to share any syllabus details or specific topics before our upcoming session.',
-            `Got your message! I'm reviewing the topics and will prepare customized notes for our consultation.`,
-          ];
-          const replyText = autoReplies[Math.floor(Math.random() * autoReplies.length)];
+          if (educator?.userId) {
+            const autoReplies = [
+              `Thank you for reaching out! I've noted down your question: "${content.slice(0, 30)}..." and I look forward to discussing it during our consultation.`,
+              'Glad to hear from you! Please feel free to share any syllabus details or specific topics before our upcoming session.',
+              `Got your message! I'm reviewing the topics and will prepare customized notes for our consultation.`,
+            ];
 
-          await db.insert(messages).values({
-            chatId,
-            senderId: educator.userId,
-            senderRole: 'educator',
-            content: replyText,
-          });
+            const replyText = autoReplies[Math.floor(Math.random() * autoReplies.length)];
 
-          await db.update(chats).set({ updatedAt: new Date() }).where(eq(chats.id, chatId));
+            await db.insert(messages).values({
+              chatId,
+              senderId: educator.userId,
+              senderRole: 'educator',
+              content: replyText,
+            });
+
+            await db.update(chats).set({ updatedAt: new Date() }).where(eq(chats.id, chatId));
+          }
+        } catch (_error) {
+          // Ignore simulated background response errors
         }
-      } catch (_e) {
-        // Silent catch for background reply
-      }
-    }, 1200);
+      }, 1200);
+    }
 
     return {
       id: newMessage.id,
       chatId: newMessage.chatId,
       senderId: newMessage.senderId,
-      senderName: user?.name || 'Student',
+      senderName: user?.name || (isEducator ? 'Educator' : 'Student'),
       senderRole: newMessage.senderRole,
       content: newMessage.content,
       createdAt: newMessage.createdAt.toISOString(),

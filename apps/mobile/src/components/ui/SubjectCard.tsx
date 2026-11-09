@@ -1,16 +1,16 @@
-import type React from 'react';
-import { Text, TouchableOpacity, StyleSheet } from 'react-native';
+import type { Subject } from '@repo/shared';
 import {
+  Atom,
+  BookOpen,
   Calculator,
   Code,
-  Atom,
-  MessageSquare,
-  TrendingUp,
   FlaskConical,
+  MessageSquare,
   Palette,
-  BookOpen,
+  TrendingUp,
 } from 'lucide-react-native';
-import type { Subject } from '@expert/shared';
+import type React from 'react';
+import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { colors, radius, shadows, spacing } from '../../constants/theme';
 
 interface SubjectCardProps {

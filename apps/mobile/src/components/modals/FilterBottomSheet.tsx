@@ -1,8 +1,9 @@
+import type { Subject } from '@repo/shared';
+import { X } from 'lucide-react-native';
 import type React from 'react';
 import { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { X, Check } from 'lucide-react-native';
-import type { Subject } from '@expert/shared';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radius, shadows, spacing } from '../../constants/theme';
 import { PrimaryButton } from '../ui/PrimaryButton';
 import { SecondaryButton } from '../ui/SecondaryButton';
@@ -70,7 +71,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <SafeAreaView edges={['bottom']} style={styles.overlay}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
         <View style={styles.content}>
           <View style={styles.header}>
@@ -161,7 +162,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
             <PrimaryButton title="Apply Filters" onPress={handleApply} style={styles.footerBtn} />
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };

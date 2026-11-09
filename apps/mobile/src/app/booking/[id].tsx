@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { API_ROUTES, type Wallet } from '@repo/shared';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  Calendar,
-  Clock,
-  Wallet as WalletIcon,
-  CheckCircle2,
   AlertTriangle,
   ArrowRight,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Wallet as WalletIcon,
 } from 'lucide-react-native';
-import { API_ROUTES, type Wallet } from '@expert/shared';
-import { apiClient } from '../../services/api';
-import { queryClient } from '../../lib/queryClient';
-import { colors, radius, shadows, spacing } from '../../constants/theme';
+import React, { useState } from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { InputField } from '../../components/ui/InputField';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SecondaryButton } from '../../components/ui/SecondaryButton';
-import { InputField } from '../../components/ui/InputField';
+import { colors, radius, shadows, spacing } from '../../constants/theme';
+import { queryClient } from '../../lib/queryClient';
+import { apiClient } from '../../services/api';
 
 export default function BookingConfirmationScreen() {
   const router = useRouter();

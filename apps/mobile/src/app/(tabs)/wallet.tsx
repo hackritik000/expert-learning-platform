@@ -1,33 +1,78 @@
-import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  RefreshControl,
+  API_ROUTES,
+  type EducatorEarningsSummary,
+  RECHARGE_PRESETS,
+  type Wallet,
+  type WalletTransaction,
+} from '@repo/shared';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  Award,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  DollarSign,
+  History,
+  Landmark,
+  ShieldCheck,
+  TrendingUp,
+  X,
+} from 'lucide-react-native';
+import { useState } from 'react';
+import {
   Alert,
   Modal,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { CreditCard, CheckCircle2, X, History, ShieldCheck } from 'lucide-react-native';
-import { type Wallet, type WalletTransaction, API_ROUTES, RECHARGE_PRESETS } from '@expert/shared';
-import { apiClient } from '../../services/api';
-import { queryClient } from '../../lib/queryClient';
-import { colors, radius, shadows, spacing } from '../../constants/theme';
-import { WalletBalanceCard } from '../../components/ui/WalletBalanceCard';
-import { TransactionItem } from '../../components/ui/TransactionItem';
-import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { InputField } from '../../components/ui/InputField';
 import { LoadingSkeleton } from '../../components/ui/LoadingSkeleton';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { TransactionItem } from '../../components/ui/TransactionItem';
+import { WalletBalanceCard } from '../../components/ui/WalletBalanceCard';
+import { colors, radius, shadows, spacing } from '../../constants/theme';
+import { queryClient } from '../../lib/queryClient';
+import { apiClient } from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
 
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuthStore();
+  const isEducator = user?.role === 'educator';
+
+  // Student recharge state
   const [selectedPreset, setSelectedPreset] = useState<number>(500);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [modalVisible, setModalVisible] = useState(false);
   const [paymentSuccessModal, setPaymentSuccessModal] = useState(false);
+
+  // Educator withdraw state
+  const [withdrawModalVisible, setWithdrawModalVisible] = useState(false);
+  const [withdrawSuccessModal, setWithdrawSuccessModal] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState<string>('');
+  const [withdrawAccount, setWithdrawAccount] = useState<string>('');
+  const [withdrawnAmountDisplay, setWithdrawnAmountDisplay] = useState<number>(0);
+
+  // Educator Earnings Summary
+  const {
+    data: earningsSummary,
+    isLoading: loadingEarnings,
+    refetch: refetchEarnings,
+  } = useQuery({
+    queryKey: ['educatorEarnings'],
+    queryFn: async () => {
+      const res = await apiClient.get<{ success: boolean; data: EducatorEarningsSummary }>(
+        API_ROUTES.BOOKINGS.EDUCATOR_EARNINGS,
+      );
+      return res.data.data;
+    },
+    enabled: isEducator,
+  });
 
   // Fetch Wallet Balance
   const {
@@ -57,9 +102,10 @@ export default function WalletScreen() {
     },
   });
 
-  // Recharge Mutation
+  // Recharge Mutation (Students only)
   const rechargeMutation = useMutation({
     mutationFn: async (amount: number) => {
+      console.log('recharge started');
       const res = await apiClient.post(API_ROUTES.WALLET.RECHARGE, {
         amount,
         paymentMethod: 'UPI / Card',
@@ -73,7 +119,36 @@ export default function WalletScreen() {
       setPaymentSuccessModal(true);
     },
     onError: (err: any) => {
-      Alert.alert('Recharge Failed', err.message || 'Unable to complete payment');
+      Alert.alert(
+        'Recharge Failed',
+        err.response?.data?.error || err.message || 'Unable to complete payment',
+      );
+    },
+  });
+
+  // Withdraw Mutation (Educators)
+  const withdrawMutation = useMutation({
+    mutationFn: async ({ amount, accountDetails }: { amount: number; accountDetails: string }) => {
+      const res = await apiClient.post(API_ROUTES.WALLET.WITHDRAW, {
+        amount,
+        accountDetails: accountDetails.trim() || 'UPI / Bank Transfer',
+      });
+      return res.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['walletTransactions'] });
+      setWithdrawnAmountDisplay(variables.amount);
+      setWithdrawModalVisible(false);
+      setWithdrawSuccessModal(true);
+      setWithdrawAmount('');
+      setWithdrawAccount('');
+    },
+    onError: (err: any) => {
+      Alert.alert(
+        'Withdrawal Failed',
+        err.response?.data?.error || err.message || 'Unable to process withdrawal',
+      );
     },
   });
 
@@ -86,10 +161,34 @@ export default function WalletScreen() {
     rechargeMutation.mutate(rechargeAmount);
   };
 
+  const handleWithdrawSubmit = () => {
+    const amount = Number.parseInt(withdrawAmount, 10);
+    if (Number.isNaN(amount) || amount < 100) {
+      Alert.alert('Invalid Amount', 'Minimum withdrawal amount is ₹100');
+      return;
+    }
+    const currentBalance = wallet?.balance ?? 0;
+    if (amount > currentBalance) {
+      Alert.alert(
+        'Insufficient Balance',
+        `Your available balance is ₹${currentBalance}. You cannot withdraw more than available funds.`,
+      );
+      return;
+    }
+    withdrawMutation.mutate({
+      amount,
+      accountDetails: withdrawAccount,
+    });
+  };
+
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refetchWallet(), refetchTransactions()]);
+    const promises: Promise<unknown>[] = [refetchWallet(), refetchTransactions()];
+    if (isEducator) {
+      promises.push(refetchEarnings());
+    }
+    await Promise.all(promises);
     setRefreshing(false);
   };
 
@@ -98,9 +197,13 @@ export default function WalletScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Consultation Wallet</Text>
+        <Text style={styles.title}>
+          {isEducator ? 'Earnings & Payouts' : 'Consultation Wallet'}
+        </Text>
         <Text style={styles.subtitle}>
-          Secure pre-paid balance for instant bookings with zero hassle
+          {isEducator
+            ? 'Track your earnings and withdraw consultation payouts to your account'
+            : 'Secure pre-paid balance for instant bookings with zero hassle'}
         </Text>
       </View>
 
@@ -113,7 +216,56 @@ export default function WalletScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
         }
       >
-        {/* Authoritative Balance Card */}
+        {/* Educator Earnings Overview Cards */}
+        {isEducator && (
+          <View style={styles.educatorEarningsContainer}>
+            <View style={styles.earningsHeroCard}>
+              <View style={styles.earningsHeroHeader}>
+                <View style={styles.earningsHeroLabelRow}>
+                  <TrendingUp size={20} color="#FFFFFF" />
+                  <Text style={styles.earningsHeroLabel}>Total Consultation Earnings</Text>
+                </View>
+                <View style={styles.earningsPill}>
+                  <Text style={styles.earningsPillText}>Live</Text>
+                </View>
+              </View>
+              <Text style={styles.earningsHeroAmount}>
+                ₹{(earningsSummary?.totalEarnings ?? 0).toLocaleString('en-IN')}
+              </Text>
+              <Text style={styles.earningsHeroSub}>
+                From {earningsSummary?.totalBookingsCount ?? 0} total consultation sessions
+              </Text>
+            </View>
+
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <View style={[styles.statIconBox, { backgroundColor: colors.successLight }]}>
+                  <Award size={18} color={colors.success} />
+                </View>
+                <Text style={styles.statValue}>{earningsSummary?.completedBookingsCount ?? 0}</Text>
+                <Text style={styles.statLabel}>Completed</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <View style={[styles.statIconBox, { backgroundColor: colors.secondary }]}>
+                  <Clock size={18} color={colors.primary} />
+                </View>
+                <Text style={styles.statValue}>{earningsSummary?.confirmedBookingsCount ?? 0}</Text>
+                <Text style={styles.statLabel}>Upcoming</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <View style={[styles.statIconBox, { backgroundColor: colors.errorLight }]}>
+                  <X size={18} color={colors.error} />
+                </View>
+                <Text style={styles.statValue}>{earningsSummary?.cancelledBookingsCount ?? 0}</Text>
+                <Text style={styles.statLabel}>Cancelled</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Wallet Balance Card */}
         {loadingWallet ? (
           <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.md }}>
             <LoadingSkeleton width="100%" height={140} borderRadius={16} />
@@ -121,63 +273,105 @@ export default function WalletScreen() {
         ) : (
           <WalletBalanceCard
             balance={wallet?.balance ?? 0}
-            onRechargePress={() => setModalVisible(true)}
+            isEducator={isEducator}
+            onRechargePress={isEducator ? undefined : () => setModalVisible(true)}
+            onWithdrawPress={isEducator ? () => setWithdrawModalVisible(true) : undefined}
           />
         )}
 
-        {/* Quick Recharge Box */}
-        <View style={styles.rechargeBox}>
-          <Text style={styles.sectionHeader}>Quick Wallet Recharge</Text>
-          <Text style={styles.sectionSubtitle}>Select amount or enter custom figure below</Text>
+        {/* Educator Withdraw Section */}
+        {isEducator ? (
+          <View style={styles.rechargeBox}>
+            <View style={styles.educatorWithdrawHeader}>
+              <View>
+                <Text style={styles.sectionHeader}>Payout Withdrawal</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Transfer earned consultation fees to your account
+                </Text>
+              </View>
+            </View>
 
-          {/* Preset Chips */}
-          <View style={styles.presetsGrid}>
-            {RECHARGE_PRESETS.map((amount) => {
-              const isSelected = selectedPreset === amount && !customAmount;
-              return (
-                <TouchableOpacity
-                  key={amount}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    setSelectedPreset(amount);
-                    setCustomAmount('');
-                  }}
-                  style={[styles.presetChip, isSelected && styles.presetChipActive]}
-                >
-                  <Text style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}>
-                    +₹{amount}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+            <View style={styles.payoutNoticeBox}>
+              <Landmark size={20} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.payoutNoticeTitle}>Direct Payouts</Text>
+                <Text style={styles.payoutNoticeSub}>
+                  Educators earn money directly from completed bookings. You can withdraw your
+                  available balance anytime via UPI or bank account.
+                </Text>
+              </View>
+            </View>
+
+            <PrimaryButton
+              title="Request Withdrawal"
+              onPress={() => setWithdrawModalVisible(true)}
+              style={styles.rechargeSubmitBtn}
+            />
+
+            <View style={styles.trustBadge}>
+              <ShieldCheck size={16} color={colors.success} />
+              <Text style={styles.trustText}>
+                Zero commission on payouts • Fast bank transfer • Verified security
+              </Text>
+            </View>
           </View>
+        ) : (
+          /* Student Quick Recharge Box */
+          <View style={styles.rechargeBox}>
+            <Text style={styles.sectionHeader}>Quick Wallet Recharge</Text>
+            <Text style={styles.sectionSubtitle}>Select amount or enter custom figure below</Text>
 
-          {/* Custom Input */}
-          <InputField
-            label="Or Enter Custom Amount (₹)"
-            placeholder="e.g. 750"
-            keyboardType="number-pad"
-            value={customAmount}
-            onChangeText={(text) => {
-              setCustomAmount(text.replace(/[^0-9]/g, ''));
-            }}
-            leftIcon={<CreditCard size={18} color={colors.textLight} />}
-            containerStyle={styles.customInputContainer}
-          />
+            {/* Preset Chips */}
+            <View style={styles.presetsGrid}>
+              {RECHARGE_PRESETS.map((amount) => {
+                const isSelected = selectedPreset === amount && !customAmount;
+                return (
+                  <TouchableOpacity
+                    key={amount}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setSelectedPreset(amount);
+                      setCustomAmount('');
+                    }}
+                    style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                  >
+                    <Text
+                      style={[styles.presetChipText, isSelected && styles.presetChipTextActive]}
+                    >
+                      +₹{amount}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-          <PrimaryButton
-            title={`Proceed to Add ₹${Number.isNaN(finalAmount) ? 0 : finalAmount}`}
-            onPress={() => setModalVisible(true)}
-            style={styles.rechargeSubmitBtn}
-          />
+            {/* Custom Input */}
+            <InputField
+              label="Or Enter Custom Amount (₹)"
+              placeholder="e.g. 750"
+              keyboardType="number-pad"
+              value={customAmount}
+              onChangeText={(text) => {
+                setCustomAmount(text.replace(/[^0-9]/g, ''));
+              }}
+              leftIcon={<CreditCard size={18} color={colors.textLight} />}
+              containerStyle={styles.customInputContainer}
+            />
 
-          <View style={styles.trustBadge}>
-            <ShieldCheck size={16} color={colors.success} />
-            <Text style={styles.trustText}>
-              100% Secure Payments • Instant Reflection • Full refund on cancellations
-            </Text>
+            <PrimaryButton
+              title={`Proceed to Add ₹${Number.isNaN(finalAmount) ? 0 : finalAmount}`}
+              onPress={() => setModalVisible(true)}
+              style={styles.rechargeSubmitBtn}
+            />
+
+            <View style={styles.trustBadge}>
+              <ShieldCheck size={16} color={colors.success} />
+              <Text style={styles.trustText}>
+                100% Secure Payments • Instant Reflection • Full refund on cancellations
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Transaction History Section */}
         <View style={styles.transactionsHeader}>
@@ -197,7 +391,9 @@ export default function WalletScreen() {
         ) : transactions.length === 0 ? (
           <View style={styles.emptyTransactions}>
             <Text style={styles.emptyTransactionsText}>
-              No transactions recorded yet. Add money above to get started!
+              {isEducator
+                ? 'No earnings or withdrawal transactions yet. Complete consultation sessions to earn.'
+                : 'No transactions recorded yet. Add money above to get started!'}
             </Text>
           </View>
         ) : (
@@ -209,7 +405,7 @@ export default function WalletScreen() {
         )}
       </KeyboardAwareScrollView>
 
-      {/* Confirmation / Payment Mock Modal */}
+      {/* Student Recharge Confirmation Modal */}
       <Modal
         visible={modalVisible}
         animationType="fade"
@@ -244,7 +440,7 @@ export default function WalletScreen() {
         </View>
       </Modal>
 
-      {/* Payment Success Modal */}
+      {/* Student Payment Success Modal */}
       <Modal
         visible={paymentSuccessModal}
         animationType="fade"
@@ -252,16 +448,108 @@ export default function WalletScreen() {
         onRequestClose={() => setPaymentSuccessModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { alignItems: 'center' }]}>
-            <CheckCircle2 size={56} color={colors.success} style={{ marginBottom: spacing.md }} />
-            <Text style={styles.modalTitle}>Payment Successful!</Text>
-            <Text style={styles.successDesc}>
-              ₹{finalAmount} has been credited to your consultation wallet balance.
-            </Text>
+          <View style={styles.modalContent}>
+            <View style={{ alignItems: 'center', marginVertical: spacing.md }}>
+              <CheckCircle2 size={56} color={colors.success} />
+              <Text style={[styles.modalTitle, { marginTop: spacing.md }]}>
+                Recharge Successful!
+              </Text>
+              <Text style={styles.successDesc}>
+                ₹{finalAmount} has been credited to your consultation wallet balance.
+              </Text>
+            </View>
+
             <PrimaryButton
               title="Done"
-              onPress={() => setPaymentSuccessModal(false)}
-              style={{ width: '100%', marginTop: spacing.md }}
+              onPress={() => {
+                setPaymentSuccessModal(false);
+                setCustomAmount('');
+              }}
+              style={styles.modalPayBtn}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Educator Withdrawal Modal */}
+      <Modal
+        visible={withdrawModalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setWithdrawModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Withdraw Earnings</Text>
+              <TouchableOpacity onPress={() => setWithdrawModalVisible(false)}>
+                <X size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalSummary}>
+              <Text style={styles.summaryLabel}>Available for Withdrawal</Text>
+              <Text style={styles.summaryAmount}>
+                ₹{(wallet?.balance ?? 0).toLocaleString('en-IN')}
+              </Text>
+              <Text style={styles.summaryNote}>Minimum withdrawal amount: ₹100</Text>
+            </View>
+
+            <InputField
+              label="Amount to Withdraw (₹)"
+              placeholder="e.g. 500"
+              keyboardType="number-pad"
+              value={withdrawAmount}
+              onChangeText={(text) => setWithdrawAmount(text.replace(/[^0-9]/g, ''))}
+              leftIcon={<DollarSign size={18} color={colors.textLight} />}
+              containerStyle={styles.customInputContainer}
+            />
+
+            <InputField
+              label="UPI ID or Bank Account"
+              placeholder="e.g. educator@okhdfcbank"
+              value={withdrawAccount}
+              onChangeText={setWithdrawAccount}
+              autoCapitalize="none"
+              leftIcon={<Landmark size={18} color={colors.textLight} />}
+              containerStyle={styles.customInputContainer}
+            />
+
+            <PrimaryButton
+              title={withdrawAmount ? `Withdraw ₹${withdrawAmount}` : 'Enter Amount'}
+              onPress={handleWithdrawSubmit}
+              loading={withdrawMutation.isPending}
+              disabled={!withdrawAmount || Number.parseInt(withdrawAmount, 10) < 100}
+              style={styles.modalPayBtn}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Educator Withdrawal Success Modal */}
+      <Modal
+        visible={withdrawSuccessModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setWithdrawSuccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={{ alignItems: 'center', marginVertical: spacing.md }}>
+              <CheckCircle2 size={56} color={colors.success} />
+              <Text style={[styles.modalTitle, { marginTop: spacing.md }]}>
+                Withdrawal Initiated!
+              </Text>
+              <Text style={styles.successDesc}>
+                ₹{withdrawnAmountDisplay} has been deducted from your wallet balance and sent to
+                your account.
+              </Text>
+            </View>
+
+            <PrimaryButton
+              title="Done"
+              onPress={() => setWithdrawSuccessModal(false)}
+              style={styles.modalPayBtn}
             />
           </View>
         </View>
@@ -294,6 +582,89 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: spacing.xxl,
   },
+  educatorEarningsContainer: {
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  earningsHeroCard: {
+    backgroundColor: '#0F766E', // Rich teal gradient-like color
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    ...shadows.md,
+    marginBottom: spacing.md,
+  },
+  earningsHeroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  earningsHeroLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  earningsHeroLabel: {
+    color: '#CCFBF1',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  earningsPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+  },
+  earningsPillText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  earningsHeroAmount: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '800',
+    marginVertical: 4,
+  },
+  earningsHeroSub: {
+    color: '#99F6E4',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    ...shadows.sm,
+  },
+  statIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '600',
+    marginTop: 2,
+  },
   rechargeBox: {
     backgroundColor: colors.surface,
     marginHorizontal: spacing.md,
@@ -303,6 +674,31 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginBottom: spacing.lg,
     ...shadows.sm,
+  },
+  educatorWithdrawHeader: {
+    marginBottom: spacing.xs,
+  },
+  payoutNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: radius.md,
+    padding: spacing.sm + 2,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  payoutNoticeTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  payoutNoticeSub: {
+    fontSize: 12,
+    color: colors.textMuted,
+    lineHeight: 16,
   },
   sectionHeader: {
     fontSize: 16,

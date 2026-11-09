@@ -1,20 +1,16 @@
-import { type RegisterFormData, registerSchema } from '@expert/validation';
+import { type RegisterFormData, registerSchema } from '@repo/validation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { Gift, GraduationCap, Lock, Mail, User } from 'lucide-react-native';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { InputField } from '../../components/ui/InputField';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { colors, radius, shadows, spacing } from '../../constants/theme';
 import { useAuthStore } from '../../stores/authStore';
+import { DropdownField } from '@/components/ui/DropdownField';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -54,114 +50,131 @@ export default function RegisterScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-          <View style={styles.logoBadge}>
-            <GraduationCap size={36} color={colors.white} />
-          </View>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>
-            Join thousands of students learning from premier experts
+        <View style={styles.logoBadge}>
+          <GraduationCap size={36} color={colors.white} />
+        </View>
+        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.subtitle}>
+          Join thousands of students learning from premier experts
+        </Text>
+      </View>
+
+      <View style={styles.bonusBanner}>
+        <Gift size={20} color={colors.primary} />
+        <View style={styles.bonusContent}>
+          <Text style={styles.bonusTitle}>₹500 Welcome Bonus Credit</Text>
+          <Text style={styles.bonusSubtitle}>
+            Credited directly to your consultation wallet upon registration!
           </Text>
         </View>
+      </View>
 
-        <View style={styles.bonusBanner}>
-          <Gift size={20} color={colors.primary} />
-          <View style={styles.bonusContent}>
-            <Text style={styles.bonusTitle}>₹500 Welcome Bonus Credit</Text>
-            <Text style={styles.bonusSubtitle}>
-              Credited directly to your consultation wallet upon registration!
-            </Text>
-          </View>
+      {formError || error ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorBoxText}>{formError || error}</Text>
         </View>
+      ) : null}
 
-        {formError || error ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorBoxText}>{formError || error}</Text>
-          </View>
-        ) : null}
+      <View style={styles.form}>
+        <Controller
+          control={control}
+          name="role"
+          render={({ field: { onChange, value } }) => (
+            <DropdownField
+              label="Role"
+              placeholder="Select Role"
+              value={value}
+              onChange={onChange}
+              error={errors.role?.message}
+              options={[
+                { label: 'Student', value: 'student' },
+                { label: 'Educator', value: 'educator' },
+              ]}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <InputField
+              label="Full Name"
+              placeholder="e.g. John Doe"
+              value={value}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              error={errors.name?.message}
+              leftIcon={<User size={18} color={colors.textLight} />}
+            />
+          )}
+        />
 
-        <View style={styles.form}>
-          <Controller
-            control={control}
-            name="name"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <InputField
-                label="Full Name"
-                placeholder="e.g. John Doe"
-                value={value}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                error={errors.name?.message}
-                leftIcon={<User size={18} color={colors.textLight} />}
-              />
-            )}
-          />
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <InputField
+              label="Email Address"
+              placeholder="name@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={value}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              error={errors.email?.message}
+              leftIcon={<Mail size={18} color={colors.textLight} />}
+            />
+          )}
+        />
 
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <InputField
-                label="Email Address"
-                placeholder="name@example.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={value}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                error={errors.email?.message}
-                leftIcon={<Mail size={18} color={colors.textLight} />}
-              />
-            )}
-          />
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <InputField
+              label="Password"
+              placeholder="At least 6 characters"
+              secureTextEntry
+              value={value}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              error={errors.password?.message}
+              leftIcon={<Lock size={18} color={colors.textLight} />}
+            />
+          )}
+        />
 
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <InputField
-                label="Password"
-                placeholder="At least 6 characters"
-                secureTextEntry
-                value={value}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                error={errors.password?.message}
-                leftIcon={<Lock size={18} color={colors.textLight} />}
-              />
-            )}
-          />
+        <Controller
+          control={control}
+          name="confirmPassword"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <InputField
+              label="Confirm Password"
+              placeholder="Re-enter your password"
+              secureTextEntry
+              value={value}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              error={errors.confirmPassword?.message}
+              leftIcon={<Lock size={18} color={colors.textLight} />}
+            />
+          )}
+        />
 
-          <Controller
-            control={control}
-            name="confirmPassword"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <InputField
-                label="Confirm Password"
-                placeholder="Re-enter your password"
-                secureTextEntry
-                value={value}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                error={errors.confirmPassword?.message}
-                leftIcon={<Lock size={18} color={colors.textLight} />}
-              />
-            )}
-          />
+        <PrimaryButton
+          title="Create Account"
+          onPress={handleSubmit(onSubmit)}
+          loading={isLoading}
+          style={styles.submitBtn}
+        />
 
-          <PrimaryButton
-            title="Create Account"
-            onPress={handleSubmit(onSubmit)}
-            loading={isLoading}
-            style={styles.submitBtn}
-          />
-
-          <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-              <Text style={styles.footerLink}>Sign In</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.footerRow}>
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+            <Text style={styles.footerLink}>Sign In</Text>
+          </TouchableOpacity>
         </View>
+      </View>
     </KeyboardAwareScrollView>
   );
 }

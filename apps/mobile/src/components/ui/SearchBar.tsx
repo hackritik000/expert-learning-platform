@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Search, SlidersHorizontal, X } from 'lucide-react-native';
+import React from 'react';
+import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { colors, radius, spacing } from '../../constants/theme';
 
 export interface SearchBarProps {
@@ -32,6 +32,7 @@ export const SearchBar = React.forwardRef<React.ComponentRef<typeof TextInput>, 
             ref={ref}
             value={value}
             onChangeText={onChangeText}
+            autoFocus
             placeholder={placeholder}
             placeholderTextColor={colors.textLight}
             style={styles.input}

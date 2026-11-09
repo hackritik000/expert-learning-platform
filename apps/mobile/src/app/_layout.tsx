@@ -4,13 +4,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants/theme';
 import { queryClient } from '../lib/queryClient';
 import { useAuthStore } from '../stores/authStore';
 
 function RootNavigation() {
-  const { isAuthenticated, isLoading, restoreSession } = useAuthStore();
+  const { isAuthenticated, isRestoringSession, restoreSession } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
 
@@ -19,7 +19,7 @@ function RootNavigation() {
   }, [restoreSession]);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isRestoringSession) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
@@ -30,9 +30,9 @@ function RootNavigation() {
       // Redirect to home if logged in and trying to access auth pages
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, isLoading, segments, router]);
+  }, [isAuthenticated, isRestoringSession, segments, router]);
 
-  if (isLoading) {
+  if (isRestoringSession) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -68,6 +68,14 @@ function RootNavigation() {
         }}
       />
       <Stack.Screen
+        name="educator/manage-slots"
+        options={{
+          headerShown: false,
+          title: 'Manage Availability Slots',
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
         name="booking/[id]"
         options={{
           presentation: 'modal',
@@ -84,22 +92,36 @@ function RootNavigation() {
           headerTintColor: colors.primary,
         }}
       />
+      <Stack.Screen
+        name="profile/edit-student"
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="profile/edit-educator"
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
     </Stack>
   );
 }
 
 export default function RootLayout() {
   return (
-    <>
-      <SafeAreaProvider>
-        <KeyboardProvider statusBarTranslucent={true}>
-          <QueryClientProvider client={queryClient}>
-            <StatusBar style="dark" />
+    <SafeAreaProvider>
+      <KeyboardProvider statusBarTranslucent={true}>
+        <QueryClientProvider client={queryClient}>
+          <StatusBar style="dark" />
+          <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
             <RootNavigation />
-          </QueryClientProvider>
-        </KeyboardProvider>
-      </SafeAreaProvider>
-    </>
+          </SafeAreaView>
+        </QueryClientProvider>
+      </KeyboardProvider>
+    </SafeAreaProvider>
   );
 }
 
