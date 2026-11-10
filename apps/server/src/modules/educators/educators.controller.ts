@@ -61,7 +61,6 @@ export class EducatorsController {
   });
 
   updateEducatorProfile = asyncHandler(async (req, res) => {
-    console.log(req.body);
     const result = await educatorsService.updateEducatorProfile(req.user!.userId, req.body);
 
     res.status(200).json({

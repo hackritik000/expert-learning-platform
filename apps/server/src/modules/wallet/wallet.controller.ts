@@ -12,7 +12,6 @@ export class WalletController {
   });
 
   recharge = asyncHandler(async (req, res) => {
-    console.log('recharge started');
     const result = await walletService.rechargeWallet(req.user!.userId, req.body);
 
     res.status(200).json({
@@ -22,7 +21,6 @@ export class WalletController {
   });
 
   withdraw = asyncHandler(async (req, res) => {
-    console.log('withdraw started');
     const result = await walletService.withdrawWallet(req.user!.userId, req.body);
 
     res.status(200).json({

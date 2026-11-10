@@ -105,7 +105,6 @@ export default function WalletScreen() {
   // Recharge Mutation (Students only)
   const rechargeMutation = useMutation({
     mutationFn: async (amount: number) => {
-      console.log('recharge started');
       const res = await apiClient.post(API_ROUTES.WALLET.RECHARGE, {
         amount,
         paymentMethod: 'UPI / Card',
@@ -229,12 +228,18 @@ export default function WalletScreen() {
                   <Text style={styles.earningsPillText}>Live</Text>
                 </View>
               </View>
-              <Text style={styles.earningsHeroAmount}>
-                ₹{(earningsSummary?.totalEarnings ?? 0).toLocaleString('en-IN')}
-              </Text>
-              <Text style={styles.earningsHeroSub}>
-                From {earningsSummary?.totalBookingsCount ?? 0} total consultation sessions
-              </Text>
+
+              {!loadingEarnings && (
+                <Text style={styles.earningsHeroAmount}>
+                  ₹{(earningsSummary?.totalEarnings ?? 0).toLocaleString('en-IN')}
+                </Text>
+              )}
+
+              {!loadingEarnings && (
+                <Text style={styles.earningsHeroSub}>
+                  From {earningsSummary?.totalBookingsCount ?? 0} total consultation sessions
+                </Text>
+              )}
             </View>
 
             <View style={styles.statsGrid}>
@@ -242,7 +247,12 @@ export default function WalletScreen() {
                 <View style={[styles.statIconBox, { backgroundColor: colors.successLight }]}>
                   <Award size={18} color={colors.success} />
                 </View>
-                <Text style={styles.statValue}>{earningsSummary?.completedBookingsCount ?? 0}</Text>
+
+                {!loadingEarnings && (
+                  <Text style={styles.statValue}>
+                    {earningsSummary?.completedBookingsCount ?? 0}
+                  </Text>
+                )}
                 <Text style={styles.statLabel}>Completed</Text>
               </View>
 
@@ -250,7 +260,12 @@ export default function WalletScreen() {
                 <View style={[styles.statIconBox, { backgroundColor: colors.secondary }]}>
                   <Clock size={18} color={colors.primary} />
                 </View>
-                <Text style={styles.statValue}>{earningsSummary?.confirmedBookingsCount ?? 0}</Text>
+
+                {!loadingEarnings && (
+                  <Text style={styles.statValue}>
+                    {earningsSummary?.confirmedBookingsCount ?? 0}
+                  </Text>
+                )}
                 <Text style={styles.statLabel}>Upcoming</Text>
               </View>
 
@@ -258,7 +273,11 @@ export default function WalletScreen() {
                 <View style={[styles.statIconBox, { backgroundColor: colors.errorLight }]}>
                   <X size={18} color={colors.error} />
                 </View>
-                <Text style={styles.statValue}>{earningsSummary?.cancelledBookingsCount ?? 0}</Text>
+                {!loadingEarnings && (
+                  <Text style={styles.statValue}>
+                    {earningsSummary?.cancelledBookingsCount ?? 0}
+                  </Text>
+                )}
                 <Text style={styles.statLabel}>Cancelled</Text>
               </View>
             </View>

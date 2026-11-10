@@ -143,7 +143,6 @@ export class EducatorsService {
       ),
     }));
 
-    console.log('educatorsWithSubjects', educatorsWithSubjects);
     return {
       educators: educatorsWithSubjects,
       total,
@@ -454,7 +453,6 @@ export class EducatorsService {
   }
 
   async updateEducatorProfile(userId: string, data: UpdateEducatorProfileFormData) {
-    console.log('data', data, userId);
     let [educator] = await db.select().from(educators).where(eq(educators.userId, userId));
 
     if (!educator) {

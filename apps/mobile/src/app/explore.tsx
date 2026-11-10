@@ -1,8 +1,8 @@
 import { API_ROUTES, type Educator, type Subject } from '@repo/shared';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { X } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -55,6 +55,14 @@ export default function ExploreScreen() {
 
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        resetFilters();
+      };
+    }, [resetFilters]),
+  );
 
   // Debounce search query 350ms
   useEffect(() => {

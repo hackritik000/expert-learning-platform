@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type LoginFormData, loginSchema } from '@repo/validation';
 import { useRouter } from 'expo-router';
 import { GraduationCap, Lock, Mail, Sparkles } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -31,14 +31,6 @@ export default function LoginScreen() {
       keepValues: true,
     },
   });
-
-  useEffect(() => {
-    console.log('LOGIN SCREEN MOUNTED');
-
-    return () => {
-      console.log('LOGIN SCREEN UNMOUNTED');
-    };
-  }, []);
 
   const onSubmit = async (data: LoginFormData) => {
     try {
